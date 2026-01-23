@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h2>Создание сервера</h2>
+<!-- Форма для добавления нового сервера -->
+<form method="post" enctype="multipart/form-data" class="create_server">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <input type="hidden" name="owner" value="{{ user.id }}" />
+    <button type="submit">Создать</button>
+</form>
+<script>
+document.querySelector('aside').style.display = "none";
+</script>
+{% endblock %}

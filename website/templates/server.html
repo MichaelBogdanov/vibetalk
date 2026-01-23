@@ -1,0 +1,91 @@
+{% extends 'base.html' %}
+{% load fontawesome_5 %}
+
+{% block aside %}
+{% if rooms %}
+<h3>Комнаты сервера {% if server.owner == user %}<button class="create-room-button">{% fa5_icon 'plus' 'fa' %}</button>{% endif %}</h3>
+<ul class="rooms">
+    {% for room in rooms %}
+    <li>
+        <a href="/room/{{ room.id }}">{% fa5_icon 'microphone' 'fa' %}Комната {{ room.id }}</a>
+    </li>
+    {% endfor %}
+</ul>
+{% else %}
+<h3>Комнат пока нет</h3>
+<ul class="rooms"></ul>
+{% endif %}
+{% endblock %}
+
+{% block content %}
+<article class="image">
+    <img src="/media/{{ server.photo }}" alt="">
+    <h2>{{ server.name }}</h2>
+</article>
+<p>{{ server.description }}</p>
+<section id="server_posts">
+    {% if posts %}
+    {% for post in posts %}
+    <article>
+        <h3>{{ post.title }}</h3>
+        <p>{{ post.post }}</p>
+        <small>{{ post.sender }}: {{ post.timestamp }}</small>
+    </article>
+    {% endfor %}
+    {% else %}
+    <h3 style="text-align: center; font-size: 1.25em;">Постов пока нет</h3>
+    {% endif %}
+</section>
+<form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">Опубликовать</button>
+</form>
+
+<script>
+// Функция для получения CSRF-токена
+function getCookie(name) {
+    var cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        var cookies = document.cookie.split(';');
+        for (var i = 0; i < cookies.length; i++) {
+            var cookie = jQuery.trim(cookies[i]);
+            // Проверяем, совпадает ли имя куки с искомым именем
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+var csrftoken = getCookie('csrftoken');
+
+$('body').on('click', '.create-room-button', function () {
+    let userId = $(this).data('user-id');
+    $.ajax({
+        url: "{% url 'website:create_room' %}",
+        method: 'POST',
+        headers: {'X-CSRFToken': csrftoken},
+        data: { server_id: `{{ server.id }}` },
+        success: function (response) {
+            if (response.status === 'ok') {
+                Swal.fire({
+                    icon: "success",
+                    title: "Успех",
+                    text: "Комната успешно создана",
+                }).then(() => {
+                    location.reload();
+                });
+            } else {
+                Swal.fire({
+                    icon: "error",
+                    title: "Ошибка",
+                    text: "Ошибка при создании комнаты",
+                });
+            }
+        }
+    });
+});
+</script>
+{% endblock %}

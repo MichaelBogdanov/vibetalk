@@ -1,0 +1,20 @@
+{% load fontawesome_5 %}
+<h3>Мои друзья</h3>
+<ul class="friends">
+    {% if not friend %}
+    <li class="active">
+    {% else %}
+    <li>
+    {% endif %}
+        <a href="/">{% fa5_icon 'search' 'fa' %}Найти друзей</a>
+    </li>
+    {% for user in friends %}
+    {% if user == friend %}
+    <li class="active">
+    {% else %}
+    <li>
+    {% endif %}
+        <a href="{% url 'website:conversation' user.pk %}">{% fa5_icon 'user' 'fa' %}{{ user }}<small>{{ user.email }}</small></a>
+    </li>
+    {% endfor %}
+</ul>

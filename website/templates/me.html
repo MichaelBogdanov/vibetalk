@@ -1,0 +1,164 @@
+{% extends 'base.html' %}
+{% load fontawesome_5 %}
+
+{% block aside %}
+{% include 'inc/_friends.html' %}
+{% endblock %}
+
+{% block content %}
+<section class="search">
+    <h2>Поиск пользователей</h2>
+    <input type="text" id="search-input" placeholder="Введите почту, имя или фамилию...">
+    <section id="results-container"></section>
+</section>
+<script>
+// Функция для получения CSRF-токена
+function getCookie(name) {
+    var cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        var cookies = document.cookie.split(';');
+        for (var i = 0; i < cookies.length; i++) {
+            var cookie = jQuery.trim(cookies[i]);
+            // Проверяем, совпадает ли имя куки с искомым именем
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+var csrftoken = getCookie('csrftoken');
+
+$(document).ready(function () {
+    $('#search-input').on('keyup', function () {
+        let query = $(this).val().trim();
+        if (query.length > 0) {
+            $.getJSON("{% url 'website:search_users' %}", { q: query }, function (response) {
+                // Очищаем контейнер результатов
+                $('#results-container').empty();
+
+                // Добавляем результаты поиска
+                response.forEach(function (user) {
+                    let button = $('<button>', {
+                        text: '',
+                        class: 'add-friend-button',
+                        'data-user-id': user.id,
+                    });
+                    let email = $('<small>', {
+                        text: user.email
+                    });
+                    let p = $('<p>', {
+                        text: user.name,
+                    });
+                    let br = $('<br>');
+                    let i_user = $('<i>', {
+                        class: 'fa fa-user'
+                    });
+                    let i_user_plus = $('<i>', {
+                        class: 'fa fa-user-plus'
+                    });
+                    button.append(i_user_plus)
+                    let resultItem = $('<article>')
+                        .append(i_user)
+                        .append(p)
+                        .append(button)
+                        .append(email);
+                    $('#results-container').append(resultItem);
+                });
+            });
+        } else {
+            // Если строка пустая, очищаем контейнер результатов
+            $('#results-container').empty();
+        }
+    });
+    // Обработка клика по кнопке "Добавить в друзья"
+    $('body').on('click', '.add-friend-button', function () {
+        let userId = $(this).data('user-id');
+        $.ajax({
+            url: "{% url 'website:add_friend' %}",
+            method: 'POST',
+            headers: {'X-CSRFToken': csrftoken},
+            data: { user_id: userId },
+            success: function (response) {
+                if (response.status === 'ok') {
+                    showToast({
+                        icon: "success",
+                        title: "Успех",
+                        text: "Заявка на дружбу успешно отправлена",
+                    }).then(() => {
+                        location.reload();
+                        $('#search-input').val("");
+                    });
+                } else {
+                    showToast({
+                        icon: "error",
+                        title: "Ошибка",
+                        text: "Ошибка при отправке заявки на дружбу",
+                    });
+                }
+            }
+        });
+    });
+});
+</script>
+<section class="invitations">
+    <h2>Заявки</h2>
+    {% if send_invitations %}
+    <h3>Отправленные:</h3>
+    {% for invitation in send_invitations %}
+    <article data-id="{{ invitation.id }}">
+        <i class="fa fa-user"></i>
+        <p>{{ invitation }}</p>
+        <button class="cancel-friend-request"> <i class="fa fa-ban"></i></button>
+        <small style="padding-right: .5em">{{ invitation.email }}</small>
+    </article>
+    {% endfor %}
+    {% else %}
+    <h3>Отправленных заявок нет</h3>
+    {% endif %}
+    {% if received_invitations %}
+    <h3>Полученные:</h3>
+    {% for invitation in received_invitations %}
+    <article data-id="{{ invitation.id }}">
+        <i class="fa fa-user"></i>
+        <p>{{ invitation }}</p>
+        <button class="add-friend-button" data-user-id="{{ invitation.id }}"> <i class="fa fa-plus"></i></button>
+        <small style="padding-right: .5em">{{ invitation.email }}</small>
+    </article>
+    {% endfor %}
+    {% else %}
+    <h3>Полученных заявок нет</h3>
+    {% endif %}
+</section>
+<script>
+$(document).ready(function () {
+    // Обработка клика по кнопке "Удалить из друзей"
+    $('.cancel-friend-request').on('click', function () {
+        const article = $(this).closest('article');
+        const userId = parseInt(article.data('id'));
+        $.ajax({
+            url: `/cancel-friend-request/${userId}/`,
+            method: 'POST',
+            headers: {'X-CSRFToken': csrftoken},
+            success: function(response) {
+                if (response.message === 'Заявка успешно отменена') {
+                    article.remove();
+                    showToast({
+                        icon: "success",
+                        title: "Успех",
+                        text: "Заявка успешно отменена",
+                    });
+                } else {
+                    showToast({
+                        icon: "error",
+                        title: "Ошибка",
+                        text: "Ошибка при отмене заявки на дружбу",
+                    });
+                }
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

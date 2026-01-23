@@ -1,0 +1,427 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load fontawesome_5 %}
+
+{% block aside %}
+{% include 'inc/_friends.html' %}
+{% endblock %}
+
+{% block content %}
+<h2>Чат с {{ friend.first_name }} {{ friend.last_name }} <a href="talk/">{% fa5_icon 'microphone-alt' 'fas' %}</a></h2>
+<div id="messages-container"></div>
+<p id="filename">&nbsp;</p>
+<form enctype="multipart/form-data" method="post" id="message-form">
+    {% csrf_token %}
+    <textarea id="message" name="message" rows="3" placeholder="Введите ваше сообщение" required></textarea>
+    <label for="file_upload" class="custom_file_upload">
+        {% fa5_icon 'plus' 'fa' %}
+    </label>
+    <button id="send_message">Отправить <span>{% fa5_icon 'arrow-right' 'fa' %}</span></button>
+    <input type="file" name="file_upload" value="" id="file_upload">
+    <input type="hidden" name="recipient" value="{{ friend.id }}" />
+</form>
+<script type="text/javascript">
+const textarea = document.getElementById('message');
+const sendButton = document.getElementById('send_message');
+
+textarea.addEventListener('keydown', (event) => {
+    // Проверяем, нажата ли клавиша Enter
+    if (event.key === 'Enter') {
+        // Если нажат Ctrl + Enter
+        if (event.ctrlKey) {
+            textarea.value += '\n'; // Можно так, но лучше обработать стандартное поведение
+        } else {
+            // Если только Enter, предотвращаем стандартный перенос строки
+            event.preventDefault(); // Предотвращаем стандартный перенос строки
+            sendButton.click(); // Имитируем клик по кнопке отправить
+        }
+    }
+});
+</script>
+<script src="https://cdn.jsdelivr.net/npm/@fancyapps/ui@6.1/dist/fancybox/fancybox.umd.js"></script>
+<script>
+// -------------------------------------------
+// Константы
+// -------------------------------------------
+const MAX_FILE_SIZE = 50 * 1024 * 1024;
+
+// -------------------------------------------
+// Инициализация переменных
+// -------------------------------------------
+let realFileInput = document.querySelector('input[type="file"]');
+let fileInput = document.querySelector('.custom_file_upload');
+let fileInputLabel = document.querySelector('#filename');
+
+let messagesDiv = document.getElementById('messages-container');
+let currentPeerId = `{{ friend.id }}`;
+let earliestMessageId = null;
+let loadingHistory = false;
+let socket = null;
+
+// ---------------------------------------------------
+// Логика кнопки выбора файла
+// ---------------------------------------------------
+fileInput.addEventListener('click', function(e) {
+    if (fileInput.innerHTML == `<i class="fa fa-ban "></i>`) {
+        realFileInput.value = "";
+        fileInput.innerHTML = `{% fa5_icon 'plus' 'fa' %}`;
+        fileInputLabel.innerHTML = `&nbsp;`;
+        fileInputLabel.style.display = 'none';
+        e.preventDefault();
+        fileInput.setAttribute("for", "file_upload");
+    }
+});
+
+realFileInput.addEventListener('change', function () {
+    const file = this.files[0];
+    if (!file) return;
+
+    if (file.size > MAX_FILE_SIZE) {
+        showToast({
+            icon: "error",
+            title: "Файл слишком большой",
+            text: `Максимальный размер — 50 МБ. Ваш файл: ${formatFileSize(file.size)}`
+        });
+
+        // Сброс UI
+        this.value = "";
+        fileInputLabel.innerHTML = '&nbsp;';
+        fileInputLabel.style.display = 'none';
+        fileInput.innerHTML = `{% fa5_icon 'plus' 'fa' %}`;
+
+        return;
+    }
+
+    fileInputLabel.innerHTML =
+        `Прикрепленный файл: ${file.name} (${formatFileSize(file.size)})`;
+    fileInputLabel.style.display = 'block';
+    fileInput.innerHTML = `{% fa5_icon 'ban' 'fa' %}`;
+});
+
+
+// -------------------------------------------
+// Формат размера файла
+// -------------------------------------------
+function formatFileSize(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+// Генератор временных ID для оптимистичных сообщений
+let tempIdCounter = -1;
+function generateTempId() {
+    tempIdCounter--;
+    return tempIdCounter;
+}
+
+// ======================================================
+// 📌 1. Загрузка первых 100 сообщений
+// ======================================================
+async function loadInitialMessages() {
+    const res = await fetch(`/api/dm/${currentPeerId}/messages?limit=100`);
+    const data = await res.json();
+    messagesDiv.innerHTML = "";
+
+    if (data.messages.length > 0) {
+        earliestMessageId = data.messages[0].id;
+    }
+    else {
+        messagesDiv.innerHTML = "<h3>Начните общение 🗨️</h3>";
+    }
+
+    for (const msg of data.messages) {
+        await renderMessageDOM(msg, true);
+    }
+
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+}
+
+// ======================================================
+// 📌 2. Подгрузка старых сообщений
+// ======================================================
+async function loadOlderMessages() {
+    if (!earliestMessageId || loadingHistory) return;
+
+    loadingHistory = true;
+    const prevHeight = messagesDiv.scrollHeight;
+
+    const res = await fetch(
+        `/api/dm/${currentPeerId}/messages?limit=100&before=${earliestMessageId}`
+    );
+    const data = await res.json();
+
+    if (data.messages.length === 0) {
+        earliestMessageId = null;
+        loadingHistory = false;
+        return;
+    }
+
+    earliestMessageId = data.messages[0].id;
+
+    for (const msg of data.messages) {
+        await renderMessageDOM(msg, false);
+    }
+
+    messagesDiv.scrollTop = messagesDiv.scrollHeight - prevHeight;
+    loadingHistory = false;
+}
+
+// Триггер на скролл вверх
+messagesDiv.addEventListener("scroll", () => {
+    if (messagesDiv.scrollTop < 80) {
+        loadOlderMessages();
+    }
+});
+
+// ======================================================
+// 📌 3. WebSocket подключение
+// ======================================================
+function initWebSocket() {
+    const protocol = window.location.protocol === "https:" ? "wss" : "ws";
+    const socketUrl = `${protocol}://${window.location.host}/ws/dm/${currentPeerId}/`;
+
+    socket = new WebSocket(socketUrl);
+
+    socket.onopen = () => console.log("WebSocket подключен");
+
+    socket.onmessage = (e) => {
+        const data = JSON.parse(e.data);
+
+        if (data.event === "message_created") {
+            const msg = data.message;
+            
+            // Ищем временные сообщения
+            const tempMessages = Array.from(messagesDiv.querySelectorAll('[data-temp="true"]'));
+            
+            if (tempMessages.length > 0 && msg.sender == `{{ request.user.id }}`) {
+                // Это ответ на наше сообщение - заменяем последнее временное
+                const lastTempMessage = tempMessages[tempMessages.length - 1];
+                const realMessage = createMessageElement(msg);
+                lastTempMessage.replaceWith(realMessage);
+            } else {
+                // Это сообщение от собеседника
+                const newMessage = createMessageElement(msg);
+                messagesDiv.appendChild(newMessage);
+            }
+            
+            // Автоскролл
+            const atBottom = messagesDiv.scrollTop + messagesDiv.clientHeight >= messagesDiv.scrollHeight - 50;
+            if (atBottom) {
+                messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            }
+        }
+    };
+
+    socket.onclose = () => {
+        console.log("WS отключен, попытка восстановить соединение...");
+        setTimeout(initWebSocket, 2000);
+    };
+}
+
+// ======================================================
+// 📌 4. Отправка сообщений
+// ======================================================
+document.getElementById('message-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const messageInput = document.getElementById('message');
+    const text = messageInput.value.trim();
+    const fileInput = document.getElementById('file_upload');
+    const file = fileInput.files[0];
+    
+    if (file) {
+        // Если есть файл - отправляем через HTTP
+        await uploadFileAndSendMessage(text, file);
+    } else if (text) {
+        // Если только текст - оптимистичное обновление + WebSocket
+        sendTextMessageWithOptimisticUpdate(text);
+    }
+    
+    // Очищаем поля
+    messageInput.value = '';
+    fileInput.value = '';
+    fileInputLabel.innerHTML = '&nbsp;';
+    fileInputLabel.style.display = 'none';
+    document.querySelector('.custom_file_upload').innerHTML = `{% fa5_icon 'plus' 'fa' %}`;
+});
+
+// Отправка файла через HTTP
+async function uploadFileAndSendMessage(text, file) {
+    const formData = new FormData();
+    formData.append('recipient', currentPeerId);
+    formData.append('message', text);
+    formData.append('file_upload', file);
+    formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+    
+    try {
+        const response = await fetch(window.location.href, {
+            method: 'POST',
+            body: formData
+        });
+        
+        if (response.ok) {
+            console.log('Сообщение с файлом отправлено');
+        }
+    } catch (error) {
+        console.error('Ошибка отправки файла:', error);
+    }
+}
+
+// Отправка текста через WebSocket с оптимистичным обновлением
+function sendTextMessageWithOptimisticUpdate(text) {
+    if (!socket || socket.readyState !== WebSocket.OPEN) {
+        console.error('WebSocket не подключен');
+        return;
+    }
+    
+    // Создаем временное сообщение
+    const tempId = generateTempId();
+    const tempMessage = {
+        id: tempId,
+        sender: `{{ request.user.id }}`,
+        message: text,
+        timestamp: new Date().toISOString(),
+        file: null
+    };
+    
+    // Сразу показываем временное сообщение
+    const tempElement = createTemporaryMessageElement(tempMessage);
+    messagesDiv.appendChild(tempElement);
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    
+    // Отправляем через WebSocket
+    const payload = {
+        action: "send",
+        text: text
+    };
+    
+    socket.send(JSON.stringify(payload));
+}
+
+// ======================================================
+// 📌 5. Создание элементов сообщений
+// ======================================================
+// Создание временного сообщения
+function createTemporaryMessageElement(msg) {
+    const date = new Date(msg.timestamp);
+    const readableDate = `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}:${String(date.getSeconds()).padStart(2, "0")} ` +
+                       `${String(date.getDate()).padStart(2, "0")}.${String(date.getMonth()+1).padStart(2, "0")}.${date.getFullYear()}`;
+
+    const div = document.createElement("div");
+    div.className = "message temporary";
+    div.dataset.id = msg.id;
+    div.dataset.temp = "true";
+    div.innerHTML = `
+        <div class="message-header">
+            <small class="message-time">${readableDate}</small>
+        </div>
+        <div class="message-content">
+            <span class="message-sender">Вы:</span>
+            ${msg.message || ""}
+            <span class="message-status">⏳</span>
+        </div>
+    `;
+    
+    return div;
+}
+
+// Создание обычного сообщения
+function createMessageElement(msg) {
+    const senderLabel = msg.sender == `{{ request.user.id }}` ? "Вы" : `{{ friend.first_name }} {{ friend.last_name }}`;
+    const date = new Date(msg.timestamp);
+    const readableDate = `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}:${String(date.getSeconds()).padStart(2, "0")} ` +
+                       `${String(date.getDate()).padStart(2, "0")}.${String(date.getMonth()+1).padStart(2, "0")}.${date.getFullYear()}`;
+
+    const div = document.createElement("div");
+    div.className = "message";
+    if (senderLabel !== "Вы") {
+        div.className += " friend_message";
+    }
+    div.dataset.id = msg.id;
+    
+    let fileHtml = "";
+    if (msg.file) {
+        const fileInfo = msg.file;
+        
+        if (fileInfo && fileInfo.is_image) {
+            fileHtml = `
+                <div class="message-file-container">
+                    <div class="message-image-preview">
+                        <a href="${fileInfo.url}"
+                           data-fancybox="msg-gallery"
+                           data-caption="${fileInfo.filename}">
+                            <img src="${fileInfo.url}" class="message-image-preview-img" loading="lazy">
+                        </a>
+                        <div class="image-actions">
+                            <small>${fileInfo.filename}</small>
+                            <a href="${fileInfo.download_url || fileInfo.url + '?download=true'}" download>
+                                {% fa5_icon 'download' 'fa' %}
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            `;
+        } else if (fileInfo) {
+            const size = formatFileSize(fileInfo.size);
+            const fileExt = fileInfo.filename.split(".").pop().toLowerCase();
+            const icons = {
+                pdf: "📕", doc: "📝", docx: "📝", xls: "📊", xlsx: "📊",
+                zip: "📦", rar: "📦", "7z": "📦", mp3: "🎵", wav: "🎵",
+                mp4: "🎬", avi: "🎬", mkv: "🎬"
+            };
+            const icon = icons[fileExt] || "📎";
+
+            fileHtml = `
+                <div class="message-file-container">
+                    <div class="message-file-download">
+                        <span class="file-icon">${icon}</span>
+                        <a href="${fileInfo.download_url || fileInfo.url + '?download=true'}" download>
+                            ${fileInfo.filename}
+                        </a>
+                        <small>(${size})</small>
+                    </div>
+                </div>
+            `;
+        }
+    }
+    
+    div.innerHTML = `
+        <div class="message-header">
+            <small class="message-time">${readableDate}</small>
+        </div>
+        <div class="message-content">
+            <span class="message-sender">${senderLabel}:</span>
+            ${msg.message || ""}
+            ${fileHtml}
+        </div>
+    `;
+    
+    // Инициализируем Fancybox для изображений
+    if (window.Fancybox) {
+        Fancybox.bind(div.querySelectorAll("[data-fancybox]"));
+    }
+    
+    return div;
+}
+
+// Старая функция renderMessageDOM (для загрузки истории)
+async function renderMessageDOM(msg, appendToBottom = true) {
+    const div = createMessageElement(msg);
+    
+    if (appendToBottom) {
+        messagesDiv.appendChild(div);
+    } else {
+        messagesDiv.insertBefore(div, messagesDiv.firstChild);
+    }
+}
+
+// ======================================================
+// 📌 6. Инициализация
+// ======================================================
+loadInitialMessages();
+initWebSocket();
+</script>
+{% endblock %}

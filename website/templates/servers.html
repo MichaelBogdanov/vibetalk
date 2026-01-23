@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+{% load fontawesome_5 %}
+
+{% block aside %}
+<h3>Категории</h3>
+<ul class="server_categories">
+    {% if selected_category %}
+    <li>
+    {% else %}
+    <li class="active">
+    {% endif %}
+        <a href="/servers/">Все</a>
+    </li>
+    {% for category in server_categories %}
+    {% if category.id == selected_category %}
+    <li class="active">
+    {% else %}
+    <li>
+    {% endif %}
+        <a href="/servers/{{ category.id }}">{{ category.icon.as_html }}{{ category|truncatechars:17 }}</a>
+    </li>
+    {% endfor %}
+</ul>
+{% endblock %}
+
+{% block content %}
+<section class="servers">
+    {% if servers %}
+    {% for server in servers %}
+    <article>
+        <img src="/media/{{ server.photo }}" alt="">
+        <h3>{{ server.name }}</h3>
+        <p>{{ server.description }}</p>
+        <form action="{% url 'website:join_server' server.id %}" method="post">
+            {% csrf_token %}
+            <button type="submit">Вступить на сервер {% fa5_icon 'plus' 'fa' %}</button>
+        </form>
+    </article>
+
+    {% endfor %}
+    {% else %}
+    <h2 style="grid-column: span 3;">Новые сервера отсутствуют</h2>
+    {% endif %}
+</section>
+{% endblock %}

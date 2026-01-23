@@ -1,0 +1,32 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang='ru'>
+{% include 'inc/_head.html' %}
+<script>
+function showToast({ icon = "info", title = "", text = "", timer = 4000 }) {
+    Swal.fire({
+        icon,
+        title,
+        text,
+        showConfirmButton: false,
+        timer,
+        timerProgressBar: true,
+        didOpen: (toast) => {
+            toast.addEventListener("mouseenter", Swal.stopTimer);
+            toast.addEventListener("mouseleave", Swal.resumeTimer);
+        }
+    });
+}
+</script>
+<body>
+    <main>
+        {% include 'inc/_my_servers.html' %}
+        <aside class="aside">
+            {% block aside %}{% endblock %}
+        </aside>
+        <section class="content">
+            {% block content %}{% endblock %}
+        </section>
+    </main>
+</body>
+</html>

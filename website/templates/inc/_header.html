@@ -1,0 +1,9 @@
+<header>
+    <nav>
+        {% if user.is_authenticated %}
+        <a href='/logout/'>Выйти</a>
+        {% else %}
+        <a href="/login/">Войти</a>
+        {% endif %}
+    </nav>
+</header>

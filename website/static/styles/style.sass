@@ -1,0 +1,914 @@
+@import url('https://fonts.googleapis.com/css2?family=Nunito+Sans:ital,opsz,wght@0,6..12,200..1000;1,6..12,200..1000&display=swap')
+// #252533
+$color_main: #252533
+
+*
+    margin: 0
+    padding: 0
+    box-sizing: border-box
+    font-family: "Nunito Sans", sans-serif
+    font-optical-sizing: auto
+    font-weight: 400
+    font-style: normal
+    font-variation-settings: "wdth" 100, "YTLC" 500
+    color: invert($color_main)
+    font-size: 16px
+    word-break: break-word
+
+
+a
+    text-decoration: none
+
+form
+    text-align: center
+    width: 100%
+    padding: 1em
+    border-radius: 10px
+    background-color: darken($color_main, 5%)
+    display: grid
+    gap: 1em
+    align-items: center
+    *
+        word-wrap: break-word !important
+    p
+        display: grid
+        grid-template-columns: 1fr
+        gap: 5px
+    label,
+    ul>li
+        color: invert(darken($color_main, 5%))
+    ul
+        list-style: none
+        li
+            font-size: 0.825em
+        &.errorlist
+            li
+                color: invert(lighten($color_main, 20%))
+    .helptext
+        display: none
+    input
+        outline: none
+        padding: 5px 10px
+        width: 100%
+        border: none
+        background-color: darken($color_main, 10%)
+        border-radius: 5px
+    button
+        grid-column: span 2
+        padding: 5px 10px
+        cursor: pointer
+        border: none
+        background-color: darken($color_main, 5%)
+        color: invert(darken($color_main, 5%))
+        border-radius: 5px
+        transition: all .1s ease-out
+        font-weight: 600
+        outline: none
+        &:hover,
+        &:focus
+            font-weight: 700
+            background-color: darken($color_main, 10%)
+            color: invert(darken($color_main, 10%))
+
+.swal2-confirm
+    padding: 5px 10px !important
+    cursor: pointer !important
+    border: none !important
+    background-color: darken($color_main, 5%) !important
+    color: invert(darken($color_main, 5%)) !important
+    border-radius: 5px !important
+    transition: all .1s ease-out !important
+    font-weight: 600 !important
+    outline: none !important
+    &:hover
+        font-weight: 700 !important
+        background-color: darken($color_main, 10%) !important
+        color: invert(darken($color_main, 10%)) !important
+
+.swal2-popup
+    background-color: $color_main !important
+
+textarea
+    resize: none
+    outline: none
+    padding: 10px
+    border: none
+    background-color: darken($color_main, 10%)
+    border-radius: 10px
+
+html
+    background-color: $color_main
+
+.login
+    form
+        max-width: 400px
+
+.register
+    form
+        max-width: 800px
+
+.login,
+.register
+    height: 100dvh
+    padding: 5em
+    display: flex
+    flex-direction: column
+    justify-content: center
+    align-items: center
+    form
+        grid-template-columns: 1fr 1fr
+    h2
+        font-size: 1.5em
+        margin-bottom: 1em
+        font-weight: 700
+    a
+        margin-top: 1em
+        font-size: 0.875em
+        opacity: 0.5
+        transition: all .1s ease-out
+        &:hover
+            opacity: 1
+
+.register
+    form
+        p
+            &:nth-of-type(1),
+            &:nth-of-type(5)
+                grid-column: span 2
+            &:nth-of-type(5)
+                order: -1
+        ul
+            grid-column: span 2
+            order: 1
+        button
+            order: 2
+
+.login
+    form
+        grid-template-columns: 1fr !important
+        ul,
+        p
+            grid-column: span 2 !important
+
+main
+    width: 100%
+    height: 100dvh
+    display: grid
+    grid-template-columns: min-content 1fr 3fr
+
+.my_servers
+    padding: 10px
+    overflow-y: scroll
+    scrollbar-width: none
+    background-color: darken($color_main, 10%)
+    display: flex
+    flex-direction: column
+    justify-content: space-between
+    align-items: center
+    >a
+        margin-top: 0.5em
+        i
+            font-size: 2.25em
+    ul
+        display: grid
+        grid-template-columns: 1fr
+        gap: 1em
+        text-align: center
+        list-style: none
+        li
+            display: flex
+            align-items: center
+            justify-content: center
+            width: 3em
+            aspect-ratio: 1 / 1
+            border-radius: 50%
+            a
+                display: flex
+                align-items: center
+                justify-content: center
+                width: 100%
+                height: 100%
+            i
+                font-size: 2.5em
+            i,
+            img
+                transition: all .3s ease-out
+            img
+                object-fit: cover
+                width: 100%
+                height: 100%
+            &:hover
+                i
+                    filter: contrast(200%)
+                img
+                    border-radius: 25%
+    img
+        width: 100%
+        height: 100%
+        object-fit: cover
+        border-radius: 50%
+
+.aside
+    overflow-y: scroll
+    scrollbar-width: none
+    min-height: 200px !important
+    background-color: darken($color_main, 5%)
+    padding: 25px 10px
+    h3
+        text-align: center
+        font-size: 1.25em
+        margin-bottom: 2em
+        font-weight: 700
+        color: invert(darken($color_main, 5%))
+        display: flex
+        justify-content: center
+        align-items: center
+        &:has(>button)
+            padding: 0 10px
+            justify-content: space-between
+    ul
+        list-style: none
+        li
+            padding: 10px 15px
+            border-radius: 5px
+            transition: all .1s ease-out
+            a
+                display: grid
+                grid-template-rows: 1fr 1fr
+                grid-template-columns: min-content min-content 1fr
+                align-items: center
+                transition: all .1s ease-out
+                white-space: nowrap
+                overflow: hidden
+                text-overflow: ellipsis
+                line-height: 1
+                overflow: visible
+                i
+                    grid-row: span 2
+                    font-size: 1.5em
+                    margin-right: 0.5em
+                small
+                    font-size: 0.75em
+                    opacity: 0.5
+                    grid-column: span 2
+                    overflow: hidden
+                    text-overflow: ellipsis
+                span
+                    justify-self: flex-end
+            &:first-of-type
+                a
+                    display: flex
+            &:not(:last-of-type)
+                margin-bottom: 5px
+            &:hover
+                background-color: lighten($color_main, 2.5%)
+                a
+                    color: invert(lighten($color_main, 2.5%))
+                    font-weight: 600
+            &.active
+                background-color: lighten($color_main, 5%)
+                a
+                    color: invert(lighten($color_main, 5%))
+                    font-weight: 700
+        &.server_categories
+            li
+                a
+                    display: flex
+        &.rooms
+            height: 100%
+            overflow-y: scroll
+            scrollbar-width: none
+            li
+                a
+                    grid-template-rows: 1fr
+    &:has(.rooms)
+        display: grid
+        grid-template-rows: min-content auto min-content
+        button
+            padding: 5px 10px
+            cursor: pointer
+            border: none
+            background-color: darken($color_main, 5%)
+            color: invert(darken($color_main, 5%))
+            border-radius: 5px
+            transition: all .1s ease-out
+            font-weight: 600
+            outline: none
+            display: flex
+            align-items: center
+            justify-content: center
+            &:hover,
+            &:focus
+                font-weight: 700
+                background-color: darken($color_main, 10%)
+                color: invert(darken($color_main, 10%))
+
+.content
+    padding: 5em
+    h2
+        font-size: 1.75em
+        font-weight: 700
+        margin-bottom: 1em
+    &:has(.search)
+        display: grid
+        grid-template-columns: 4fr 3fr
+        gap: 1em
+        padding: 0
+    &:has(.create_server)
+        grid-column: span 2
+        display: flex
+        flex-direction: column
+        align-items: center
+        justify-content: center
+        form
+            width: 100%
+            max-width: 600px
+            label
+                display: none
+            button
+                grid-column: span 1
+            select
+                background-color: darken($color_main, 10%)
+                border: none
+                padding: 5px 10px
+                border-radius: 5px
+    &:has(.servers)
+        overflow-y: scroll
+        scrollbar-width: none
+    &:has(#server_posts)
+        height: 100dvh
+        display: grid
+        grid-template-rows: min-content min-content auto min-content
+        gap: 1em
+        overflow: hidden
+        .image
+            position: relative
+            height: min-content
+            max-height: 20dvh
+            img
+                margin-top: -5em
+                margin-left: -5em
+                width: calc(100% + 10em)
+                max-height: 20dvh
+                object-fit: cover
+            h2
+                margin: 0 !important
+                max-width: 100%
+                max-height: calc(100% - 0.75em)
+                text-align: left
+                color: white
+                position: absolute
+                z-index: 1
+                font-size: 2em
+                left: 0
+                bottom: 1.25em
+                overflow-y: scroll
+                scrollbar-width: none
+                background-color: rgba(0, 0, 0, .5)
+                padding: .5em 1em
+                border-radius: 10px
+        >p
+            margin-top: -1.25em
+            margin-left: calc(-5em / 1.25 * 1)
+            padding: 1em calc(6em / 1.25 * 1)
+            width: calc(100% + 10em / 1.25 * 1)
+            font-size: 1.25em
+            background-color: darken($color_main, 10%)
+            color: invert(darken($color_main, 10%), 100%)
+        #server_posts
+            padding: 1em
+            background-color: darken($color_main, 5%)
+            border-radius: 10px
+            height: 100%
+            overflow-y: scroll
+            scrollbar-width: none
+            article
+                margin-bottom: 1em
+                h3
+                    font-size: 1.25em
+                    line-height: 2
+                small
+                    font-size: .875em
+                    opacity: 0.5
+        form
+            margin-bottom: -2.5em
+            grid-template-columns: 1fr
+            label
+                display: none
+            button
+                grid-column: span 1
+    &:has(#messages-container)
+        display: grid
+        grid-template-rows: min-content auto min-content min-content
+        gap: 1em
+        max-height: 100dvh
+        padding: 2.5em 5em
+        h2
+            margin-bottom: 0
+            display: flex
+            justify-content: space-between
+            align-items: center
+            i
+                font-size: 2em
+                transition: all .3s ease-out
+                &:hover
+                    filter: contrast(200%)
+        #messages-container
+            padding: 1em
+            border-radius: 10px
+            background-color: darken($color_main, 5%)
+            overflow-y: scroll
+            scrollbar-width: none
+            max-height: min-content !important
+            display: flex
+            flex-direction: column
+            line-height: 1.5
+            gap: .5em
+            text-align: right
+            .message
+                display: grid
+                &.friend_message
+                    text-align: left
+                small
+                    opacity: 0.5
+                    font-size: 0.75em
+                a
+                    opacity: 0.5
+                    font-size: 0.875em
+                    transition: all .1s ease-out
+                    &:hover
+                        opacity: 1
+                img
+                    max-width: 60%
+                    object-fit: contain
+                    border-radius: 10px
+                    transition: all .1s ease-out
+                .message-header
+                    display: flex
+                    flex-direction: column
+                &.temporary
+                    opacity: 0.8
+                    &::after
+                        content: "⏳"
+                        position: absolute
+                        right: 10px
+                        top: 10px
+                        font-size: 12px
+        #message-form
+            display: grid
+            grid-template-columns: 1fr
+            gap: 1em
+            textarea
+                margin-top: 1em
+                width: calc(100% + 8px)
+            button
+                grid-column: span 2
+                padding: 5px 10px
+                cursor: pointer
+                border: none
+                background-color: darken($color_main, 5%)
+                color: invert(darken($color_main, 5%))
+                border-radius: 10px
+                transition: all .1s ease-out
+                font-weight: 600
+                &:hover
+                    font-weight: 700
+                    background-color: darken($color_main, 10%)
+                    color: invert(darken($color_main, 10%))
+            #file_upload
+                display: none
+            .custom_file_upload
+                margin-top: 1em
+                margin-left: 1em
+                height: 3em
+                border: none
+                aspect-ratio: 1 / 1
+                border-radius: 50%
+                background: darken($color_main, 10%)
+                display: flex
+                flex-direction: column
+                align-items: center
+                justify-content: center
+                cursor: pointer
+        #filename
+            margin: 1em 0
+            display: none
+    .search
+        padding: 5em
+        height: 100%
+        overflow-y: scroll
+        scrollbar-width: none
+        input
+            outline: none
+            padding: 5px 10px
+            width: 100%
+            border: none
+            background-color: darken($color_main, 10%)
+            border-radius: 5px
+    #results-container
+        margin-top: 2em
+    #results-container,
+    .invitations
+        article
+            display: grid
+            grid-template-columns: min-content auto max-content
+            grid-template-rows: 1fr 1fr
+            align-items: center
+            line-height: 1
+            >*
+                &:not(:last-child)
+                    margin-right: 10px
+            &:not(:last-of-type)
+                margin-bottom: 1em
+            >i
+                font-size: 2em
+                grid-row: span 2
+            p
+                white-space: nowrap
+                overflow: hidden
+                text-overflow: ellipsis
+            small
+                font-size: 0.75
+                opacity: 0.5
+                white-space: nowrap
+                overflow: hidden
+                text-overflow: ellipsis
+            button
+                padding: 5px 10px
+                cursor: pointer
+                border: none
+                background-color: darken($color_main, 5%)
+                color: invert(darken($color_main, 5%))
+                border-radius: 5px
+                transition: all .1s ease-out
+                font-weight: 600
+                grid-row: span 2
+                &:hover
+                    font-weight: 700
+                    background-color: darken($color_main, 10%)
+                    color: invert(darken($color_main, 10%))
+    .invitations
+        padding: 5em 2.5em
+        height: 100%
+        overflow-y: scroll
+        scrollbar-width: none
+        border-left: solid 1px lighten($color_main, 2.5%)
+        h3
+            font-weight: 600
+            margin-bottom: 1em
+            opacity: 0.66
+            &:last-of-type
+                margin-top: 2em
+.servers
+    display: grid
+    grid-template-columns: repeat(2, 1fr)
+    gap: 1em
+    article
+        border-radius: 10px
+        background-color: darken($color_main, 5%)
+        overflow: hidden
+        display: flex
+        flex-direction: column
+        justify-content: flex-start
+        transition: all .2s ease-out
+        img
+            width: 100%
+            aspect-ratio: 16 / 9
+            object-fit: cover
+        h3, p
+            padding: 1em
+        h3
+            font-size: 1.125em
+            transition: all .2s ease-out
+            font-weight: 700
+            color: invert(darken($color_main, 5%))
+        p
+            margin-top: -1em
+        &:hover
+            transform: translatey(-1px)
+            background-color: darken($color_main, 7.5%)
+            box-shadow: 0px 8px 16px darken($color_main, 5%)
+            h3
+                color: invert(darken($color_main, 7.5%))
+        form
+            display: grid !important
+            grid-template-columns: 1fr !important
+            min-width: fit-content !important
+        button
+            display: block !important
+            width: 100% !important
+            max-width: 100% !important
+            grid-column: span 1 !important
+            margin-top: 0px !important
+    form
+        margin: 0
+        padding: 0
+        background-color: rgba(0, 0, 0, 0)
+        grid-template-columns: min-content
+        padding: 1em
+    button
+        display: flex
+        align-items: center
+        justify-content: center
+        margin-top: 1em
+        padding: 5px 10px
+        cursor: pointer
+        border: none
+        background-color: darken($color_main, 5%)
+        color: invert(darken($color_main, 5%))
+        border-radius: 10px
+        transition: all .1s ease-out
+        font-weight: 600
+        grid-row: span 2
+        i
+            margin-left: 10px
+        &:hover
+            font-weight: 700
+            background-color: darken($color_main, 10%)
+            color: invert(darken($color_main, 10%))
+
+
+@media screen and ((max-width: 1000px) or (max-height: 880px))
+    #message-form
+        grid-template-columns: 1fr min-content !important
+        grid-template-rows: 1fr 1fr
+        gap: .5em 1.25em !important
+        textarea
+            margin-top: 0 !important
+            grid-row: span 2
+        .custom_file_upload
+            margin: 0 !important
+            height: 100% !important
+        #send_message
+            font-size: 0
+            grid-column: span 1 !important
+            padding: 0 !important
+            span
+                height: 100% !important
+                border: none
+                aspect-ratio: 1 / 1
+                border-radius: 50%
+                background: darken($color_main, 10%)
+                display: flex
+                flex-direction: column
+                align-items: center
+                justify-content: center
+                cursor: pointer
+    main
+        grid-template-columns: min-content 1fr
+        grid-template-rows: min-content 3fr
+    .invitations
+        border: none !important
+    .my_servers
+        grid-row: span 3 !important
+    .aside
+        width: 100%
+        max-width: none
+        max-height: 25dvh
+        padding: 2.5em
+        display: grid
+        grid-template-rows: min-content auto
+        h3
+            font-size: 1.75em
+            margin-bottom: .5em
+        ul.rooms,
+        .friends,
+        .server_categories
+            max-height: 100%
+            overflow-y: auto
+            scrollbar-width: thin !important
+            li
+                padding: .5em !important
+    .content
+        padding: 2.5em !important
+        overflow-y: scroll !important
+        scrollbar-width: none
+        .search,
+        .invitations
+            padding: 2.5em !important
+        .invitations
+            max-height: 25dvh
+            overflow-y: scroll !important
+            scrollbar-width: none
+    .content:has(#messages-container)
+        padding: 2.5em !important
+    .content:has(.create_server)
+        grid-row: span 2
+    .content:has(#server_posts)
+        form
+            margin: auto 0 !important
+    .content:has(.create_server),
+    .content:has(#server_posts)
+        grid-column: span 1
+        .image
+            img
+                margin-top: -2.5em !important
+                margin-left: -2.5em !important
+    .content:has(#server_posts)
+        height: 100%
+    #server_posts
+        height: min-content !important
+        max-height: 50dvh !important
+
+@media screen and (max-width: 860px)
+    h2
+        text-align: center
+    .content
+        grid-template-columns: 1fr !important
+        grid-template-rows: 1fr min-content
+    .content:has(.create_server)
+        padding: 2.5em !important
+    .login,
+    .register
+        padding: 2.5em !important
+
+@media screen and (max-width: 700px)
+    .servers
+        grid-template-columns: repeat(1, 1fr)
+
+@media screen and (max-width: 610px)
+    *
+        font-size: 12px
+    .login,
+    .register
+        form
+            grid-template-columns: 1fr
+            >*
+                grid-column: span 1 !important
+
+@media screen and (max-width: 500px)
+    *
+        font-size: 10px
+    .content
+        h2
+            font-size: 1.5em !important
+
+.QajuHzlZleFtiTUp_E8u,
+.D9WLyEQaARfWqCTyVrpU
+    height: 100% !important
+
+.zzHlKp_IVmgXBPV3Jv58
+    background-color: $color_main !important
+    *
+        margin: 0 !important
+        padding: 0 !important
+
+.DpFUrSpAcBmMLOINasFh
+    background-color: $color_main !important
+    width: min-content !important
+    height: min-content !important
+
+.NBBycYHT07ctwjSJrkYF,
+.q2X9XnZ20YKxHRiglFo5,
+.fIV3OksZyHVd3euYLR5T,
+.YWJF_zo9VekC9vb1hHEI
+    padding: 1em !important
+
+.q2X9XnZ20YKxHRiglFo5,
+.YWJF_zo9VekC9vb1hHEI
+    gap: .5em
+    *
+        gap: .5em
+
+.WFGstMBWywudaG4JjIEj
+    >p
+        color: #dadacf !important
+
+.D9WLyEQaARfWqCTyVrpU
+    padding: 5em !important
+    display: grid !important
+    align-items: center !important
+    align-content: center !important
+    justify-content: center !important
+    justify-items: center !important
+    gap: 2.5em !important
+    width: 100vw !important
+    align-items: center !important
+    justify-content: center !important
+    background-color: darken($color_main, 5%) !important
+    border: none !important
+    box-shadow: 0px 8px 16px darken($color_main, 2.5%) !important
+
+.TYiiRFB3EhYJGVPE4k4q
+    display: none !important
+
+._M8cCug8H18ALQ05cNMt
+    display: none !important
+
+.VsTVUAD89KWleD0YRVsD
+    padding: 5px 10px !important
+    cursor: pointer !important
+    border: none !important
+    background-color: darken($color_main, 5%) !important
+    color: invert(darken($color_main, 5%)) !important
+    border-radius: 5px !important
+    transition: all .1s ease-out !important
+    font-weight: 600 !important
+    &:hover
+        font-weight: 700 !important
+        background-color: darken($color_main, 10%) !important
+        color: invert(darken($color_main, 10%)) !important
+
+.gWzRvax8CjHIpjuL09nE
+    display: grid !important
+    grid-template-columns: repeat(3, 1fr) !important
+    gap: 1em !important
+    align-items: center !important
+    align-content: center !important
+    justify-content: center !important
+    justify-items: center !important
+
+.VsTVUAD89KWleD0YRVsD
+    width: 100% !important
+    font-size: 0px !important
+    padding: 5px 10px !important
+    border-radius: 5px !important
+    &::before
+        font-size: 16px !important
+        content: "Присоединиться" !important
+
+.pVo6XoSfywa4eLk9ef2S
+    background-color: darken($color_main, 10%) !important
+
+.ji5jASszKFf2CGCmbxEh
+    background-color: darken($color_main, 5%) !important
+
+.sCsSbKP9yxvw4LQAeaTz
+    background-color: $color_main !important
+
+.n6GuqIk3cK3cSgL5gW1Z
+    display: none !important
+
+.QbarJSxzhe6iPp6VdlAs
+    display: none !important
+
+.AmKXNJUm0SmWgO90daLW,
+.IsAmTmj_XcYEzCWjWcQd
+    *
+        &:not(button)
+            display: none
+    button
+        height: min-content !important
+        margin: 0px !important
+        width: 100% !important
+        font-size: 0px !important
+        padding: 5px 10px !important
+        border-radius: 5px !important
+        cursor: pointer !important
+        border: none !important
+        background-color: darken($color_main, 5%) !important
+        color: invert(darken($color_main, 5%)) !important
+        border-radius: 5px !important
+        transition: all .1s ease-out !important
+        font-weight: 600 !important
+        &::before
+            font-size: 16px !important
+            content: "Присоединиться" !important
+
+.jF_DhwXwBFswm5nphXHX
+    margin: auto !important
+    justify-content: center !important
+    height: 100% !important
+    background-color: $color_main !important
+
+
+.C7PnSkxqD6bOXhZlRlcc
+    border: none !important
+
+.pVo6XoSfywa4eLk9ef2S,
+.pVo6XoSfywa4eLk9ef2S > div
+    background-color: $color_main !important
+
+.K8gl_GRNfrP7NyOMXbYo,
+.e1YpYFl0LCQZp06yW10G,
+#ZegoCloudWhiteboardContainer
+    background: none !important
+
+.zG3QWsKU2mqrjVcn6KCg,
+.kdkpzm1xUvIPScV_6T_w > *
+    background-color: $color_main !important
+
+.K3GWnbJCjsuJyXHtYBfv *,
+.SLlCVwchp3f5Pe5UD1fk *
+    color: white !important
+
+.K3GWnbJCjsuJyXHtYBfv,
+.SLlCVwchp3f5Pe5UD1fk
+    border: none !important
+
+.B2yX9JkmkxULE_1for1U,
+.so3wfTYXYHisCOxpdetx,
+.e7TO_BzYIAwlKdRwbosf,
+.OLxSBEeyXaAGOJZRywMI,
+.fv_x4FXz3dXU9Ogd536z,
+.h5i3toRnDcX9LtzT6Mw4
+    background-color: $color_main !important
+
+
+.zG3QWsKU2mqrjVcn6KCg,
+#zego-container > div > div > div.QAHxuJxRZWb3P_cbR8QA > div.lRNsiz_pTf7YmA5QMh4z > div.fQDXeFNZ1QEJGgfJP7J1 > div.fthISTIjZHhtlakLYyDz.K8gl_GRNfrP7NyOMXbYo > div.UELDhiMloXvhMBAbYeSI > div.h5i3toRnDcX9LtzT6Mw4 > p
+    display: none !important
+
+#zego-container > div > div > div.QAHxuJxRZWb3P_cbR8QA > div.lRNsiz_pTf7YmA5QMh4z > div.fQDXeFNZ1QEJGgfJP7J1 > div.yZuGKtil1LUofPm3MP8R.tmFgm4H9XO4r1G3c_hLg
+    padding: 10px !important
+

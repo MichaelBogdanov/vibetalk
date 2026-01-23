@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html lang='ru'>
+{% include 'inc/_head.html' %}
+<body class="login">
+    <h2>Вход</h2>
+    <form method='post'>
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type='submit'>Войти</button>
+    </form>
+    <a href="/register/">Ещё нет аккаунта?</a>
+</body>
+</html>

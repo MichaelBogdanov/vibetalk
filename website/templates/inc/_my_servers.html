@@ -1,0 +1,26 @@
+{% load fontawesome_5 %}
+<section class="my_servers">
+    <ul>
+        <li><a href="/">
+            {% fa5_icon 'envelope' 'fa' %}
+        </a></li>
+        {% if user.is_superuser %}
+        <li><a href="/admin/website/">
+            {% fa5_icon 'users-cog' 'fas' %}
+        </a></li>
+        {% endif %}
+        <hr>
+        {% for server in my_servers %}
+        <li>
+            <a href="/server/{{ server.id }}"><img src="/media/{{ server.photo }}" alt=""></a>
+        </li>
+        {% endfor %}
+        <li><a href="/servers/">
+            {% fa5_icon 'compass' 'fa' %}
+        </a></li>
+        <li><a href="/create_server/">
+            {% fa5_icon 'plus' 'fa' %}
+        </a></li>
+    </ul>
+    <a href="/logout/">{% fa5_icon 'sign-out-alt' 'fas' %}</a>
+</section>
