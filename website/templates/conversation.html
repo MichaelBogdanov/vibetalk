@@ -38,7 +38,7 @@ textarea.addEventListener('keydown', (event) => {
     }
 });
 </script>
-<script src="https://cdn.jsdelivr.net/npm/@fancyapps/ui@6.1/dist/fancybox/fancybox.umd.js"></script>
+<script src="{% static 'scripts/fancybox.umd.js' %}"></script>
 <script>
 // -------------------------------------------
 // Константы
@@ -181,7 +181,7 @@ messagesDiv.addEventListener("scroll", () => {
 // ======================================================
 function initWebSocket() {
     const protocol = window.location.protocol === "https:" ? "wss" : "ws";
-    const socketUrl = `${protocol}://${window.location.host}/ws/dm/${currentPeerId}/`;
+    const socketUrl = `wss://${window.location.host}/ws/dm/${peer_id}/`;
 
     socket = new WebSocket(socketUrl);
 
