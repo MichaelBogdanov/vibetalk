@@ -258,7 +258,6 @@ main {
 .aside {
   overflow-y: scroll;
   scrollbar-width: none;
-  min-height: 200px !important;
   background-color: rgb(26.2784090909, 26.2784090909, 36.2215909091);
   padding: 25px 10px;
 }
@@ -816,6 +815,8 @@ main {
   .aside {
     width: 100%;
     max-width: none;
+    height: -moz-min-content !important;
+    height: min-content !important;
     max-height: 25dvh;
     padding: 2.5em;
     display: grid;
@@ -828,6 +829,8 @@ main {
   .aside ul.rooms,
   .aside .friends,
   .aside .server_categories {
+    height: -moz-min-content !important;
+    height: min-content !important;
     max-height: 100%;
     overflow-y: auto;
     scrollbar-width: thin !important;

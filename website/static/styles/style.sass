@@ -222,7 +222,6 @@ main
 .aside
     overflow-y: scroll
     scrollbar-width: none
-    min-height: 200px !important
     background-color: darken($color_main, 5%)
     padding: 25px 10px
     h3
@@ -675,6 +674,7 @@ main
     .aside
         width: 100%
         max-width: none
+        height: min-content !important
         max-height: 25dvh
         padding: 2.5em
         display: grid
@@ -685,6 +685,7 @@ main
         ul.rooms,
         .friends,
         .server_categories
+            height: min-content !important
             max-height: 100%
             overflow-y: auto
             scrollbar-width: thin !important
