@@ -1,25 +1,52 @@
-name: Deploy Django Project
+name: Deploy Django App
 
 on:
   push:
-    branches: [ "main" ]
+    branches:
+      - main
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Deploy to server via SSH
-        uses: appleboy/ssh-action@v1.0.3
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.8'
+
+      - name: Install dependencies
+        run: |
+          python -m venv venv
+          source venv/bin/activate
+          pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run Django migrations
+        run: |
+          source venv/bin/activate
+          python manage.py makemigrations
+          python manage.py migrate
+
+      - name: Collect static files
+        run: |
+          source venv/bin/activate
+          python manage.py collectstatic --noinput
+
+      - name: Deploy (example: copy to server via SSH)
+        uses: appleboy/ssh-action@v0.1.6
         with:
           host: ${{ secrets.SERVER_HOST }}
-          username: django
-          key: ${{ secrets.SERVER_SSH_KEY }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 22
           script: |
-            cd ~/vibetalk
-            git pull
+            cd /home/django/vibetalk
+            git pull origin main
             source venv/bin/activate
             pip install -r requirements.txt
-            python manage.py migrate --noinput
+            python manage.py migrate
             python manage.py collectstatic --noinput
-            sudo systemctl restart daphne
