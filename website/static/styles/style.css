@@ -211,6 +211,14 @@ main {
   aspect-ratio: 1/1;
   border-radius: 50%;
 }
+.my_servers ul li:nth-child(1) a:hover img {
+  filter: invert(1) contrast(200%);
+  transform: scale(1.3);
+}
+.my_servers ul li:nth-child(1) a img {
+  filter: invert(1);
+  transform: scale(1.25);
+}
 .my_servers ul li a {
   display: flex;
   align-items: center;
@@ -233,8 +241,10 @@ main {
 }
 .my_servers ul li:hover i {
   filter: contrast(200%);
+  transform: scale(1.05);
 }
 .my_servers ul li:hover img {
+  transform: scale(1.05);
   border-radius: 25%;
 }
 .my_servers img {

@@ -1,9 +1,10 @@
+{% load static %}
 {% load fontawesome_5 %}
 <section class="my_servers">
     <ul>
-        <li><a href="/">
-            {% fa5_icon 'envelope' 'fa' %}
-        </a></li>
+        <li>
+            <a href="/"><img src="{% static 'favicon/favicon.png' %}" alt=""></a>
+        </li>
         {% if user.is_superuser %}
         <li><a href="/admin/website/">
             {% fa5_icon 'users-cog' 'fas' %}
