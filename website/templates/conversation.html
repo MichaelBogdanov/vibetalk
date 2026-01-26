@@ -181,7 +181,7 @@ messagesDiv.addEventListener("scroll", () => {
 // ======================================================
 function initWebSocket() {
     const protocol = window.location.protocol === "https:" ? "wss" : "ws";
-    const socketUrl = `wss://${window.location.host}/ws/dm/${peer_id}/`;
+    const socketUrl = `${protocol}://${window.location.host}/ws/dm/${currentPeerId}/`;
 
     socket = new WebSocket(socketUrl);
 
