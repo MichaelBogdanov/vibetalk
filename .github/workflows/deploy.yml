@@ -33,10 +33,5 @@ jobs:
             # Собираем статические файлы
             python manage.py collectstatic --noinput
 
-            # Перезапускаем daphne без sudo, если django владеет сервисом
-            # Если нет, можно добавить NOPASSWD в sudoers для systemctl
-            if systemctl --user list-units | grep -q daphne; then
-              systemctl --user restart daphne
-            else
-              echo "WARNING: Unable to restart daphne service without sudo"
-            fi
+            # Перезапускаем daphne
+            systemctl --user restart daphne
