@@ -34,4 +34,4 @@ jobs:
             python manage.py collectstatic --noinput
 
             # Перезапускаем daphne
-            systemctl --user restart daphne
+            sudo systemctl restart daphne
