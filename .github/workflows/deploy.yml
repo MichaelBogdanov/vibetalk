@@ -20,18 +20,20 @@ jobs:
 
       - name: Install dependencies
         run: |
-          /home/django/vibetalk/venv/bin/python -m pip install --upgrade pip
-          /home/django/vibetalk/venv/bin/python -m pip install -r requirements.txt
+          cd ~/vibetalk/
+          ~/vibetalk/venv/bin/python -m pip install --upgrade pip
+          ~/vibetalk/venv/bin/python -m pip install -r requirements.txt
 
       - name: Run Django Migrations
         run: |
-          /home/django/vibetalk/venv/bin/python manage.py makemigrations
-          /home/django/vibetalk/venv/bin/python manage.py migrate
+          cd ~/vibetalk/
+          ~/vibetalk/venv/bin/python manage.py makemigrations
+          ~/vibetalk/venv/bin/python manage.py migrate
 
       - name: Collect static files
         run: |
-          /home/django/vibetalk/venv/bin/python manage.py collectstatic --noinput
-
+          cd ~/vibetalk/
+          ~/vibetalk/venv/bin/python manage.py collectstatic --noinput
       - name: Deploy to Server
         uses: appleboy/ssh-action@v0.1.6
         with:
@@ -40,9 +42,9 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: 22
           script: |
-            cd /home/django/vibetalk
+            cd ~/vibetalk/
             git pull origin main
-            /home/django/vibetalk/venv/bin/activate
-            /home/django/vibetalk/venv/bin/python -m pip install -r requirements.txt
-            /home/django/vibetalk/venv/bin/python manage.py migrate
-            /home/django/vibetalk/venv/bin/python manage.py collectstatic --noinput
+            ~/vibetalk/venv/bin/activate
+            ~/vibetalk/venv/bin/pip install -r requirements.txt
+            ~/vibetalk/venv/bin/python manage.py migrate
+            ~/vibetalk/venv/bin/python manage.py collectstatic --noinput
