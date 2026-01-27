@@ -129,6 +129,9 @@ class ServerPost(models.Model):
     post = models.TextField('Пост', max_length=1024)
     timestamp = models.DateTimeField(auto_now_add=True)
 
+    def __str__(self):
+        return f'({self.server.name}) Пост #{self.id} от {self.sender.email}'
+
     class Meta:
         verbose_name = 'пост'
         verbose_name_plural = 'Посты серверов'
@@ -136,6 +139,9 @@ class ServerPost(models.Model):
 
 class ServerRoom(models.Model):
     server = models.ForeignKey(Server, on_delete=models.CASCADE, verbose_name='Сервер')
+
+    def __str__(self):
+        return f'({self.server.name}) Комната #{self.id}'
 
     class Meta:
         verbose_name = 'комнату'
