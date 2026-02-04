@@ -775,6 +775,9 @@ main {
 }
 
 @media screen and ((max-width: 1000px) or (max-height: 880px)) {
+  * {
+    font-size: 14px;
+  }
   #message-form {
     grid-template-columns: 1fr min-content !important;
     grid-template-rows: 1fr 1fr;
@@ -1175,7 +1178,8 @@ main {
   color: initial !important;
 }
 
-#zego-container > div > div > div.QAHxuJxRZWb3P_cbR8QA > div.M4HRY2n7rpNAd1UjDNZe > div.Z2PYS5vNVghY4m46zQQV > div > div > div {
+#zego-container > div > div > div.QAHxuJxRZWb3P_cbR8QA > div.M4HRY2n7rpNAd1UjDNZe > div.Z2PYS5vNVghY4m46zQQV > div > div > div,
+.CTk5yvs1VFTUR3zVNAE8 * {
   white-space: nowrap !important;
 }
 
@@ -1200,4 +1204,12 @@ main {
 }
 .TTgLs8cpg66Z6CXgHGVA:hover::before {
   color: rgb(239.4431818182, 239.4431818182, 233.5568181818);
+}
+
+.BZwHQi7BzXC5lXVMMx5S {
+  aspect-ratio: 1/1 !important;
+}
+
+.qDb5spjCJhG4FcD7FnIB {
+  display: none !important;
 }/*# sourceMappingURL=style.css.map */
