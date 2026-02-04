@@ -1,6 +1,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Nunito+Sans:ital,opsz,wght@0,6..12,200..1000;1,6..12,200..1000&display=swap')
 // #252533
 $color_main: #252533
+$font-size: 16px
 
 *
     margin: 0
@@ -12,7 +13,7 @@ $color_main: #252533
     font-style: normal
     font-variation-settings: "wdth" 100, "YTLC" 500
     color: invert($color_main)
-    font-size: 16px
+    font-size: $font-size
     word-break: break-word
 
 
@@ -641,8 +642,6 @@ main
 
 
 @media screen and ((max-width: 1000px) or (max-height: 880px))
-    *
-        font-size: 16px !important
     #message-form
         grid-template-columns: 1fr min-content !important
         grid-template-rows: 1fr 1fr
@@ -753,8 +752,6 @@ main
                 grid-column: span 1 !important
 
 @media screen and (max-width: 500px)
-    *
-        font-size: 14px !important
     .content
         h2
             font-size: 1.5em !important
