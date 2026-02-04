@@ -256,6 +256,8 @@ main {
 }
 
 .aside {
+  min-height: -moz-min-content;
+  min-height: min-content;
   overflow-y: scroll;
   scrollbar-width: none;
   background-color: rgb(26.2784090909, 26.2784090909, 36.2215909091);
@@ -510,6 +512,7 @@ main {
   scrollbar-width: none;
   max-height: -moz-min-content !important;
   max-height: min-content !important;
+  min-height: 300px;
   display: flex;
   flex-direction: column;
   line-height: 1.5;
@@ -772,6 +775,9 @@ main {
 }
 
 @media screen and ((max-width: 1000px) or (max-height: 880px)) {
+  * {
+    font-size: 18px;
+  }
   #message-form {
     grid-template-columns: 1fr min-content !important;
     grid-template-rows: 1fr 1fr;
@@ -810,15 +816,16 @@ main {
     border: none !important;
   }
   .my_servers {
+    margin-right: -1px;
+    border: 1px solid #252533;
     grid-row: span 3 !important;
   }
   .aside {
+    border: 1px solid #252533;
     width: 100%;
     max-width: none;
-    height: -moz-min-content !important;
-    height: min-content !important;
-    max-height: 25dvh;
-    padding: 2.5em;
+    overflow: auto !important;
+    padding: 1em;
     display: grid;
     grid-template-rows: min-content auto;
   }
@@ -831,7 +838,7 @@ main {
   .aside .server_categories {
     height: -moz-min-content !important;
     height: min-content !important;
-    max-height: 100%;
+    max-height: 20dvh !important;
     overflow-y: auto;
     scrollbar-width: thin !important;
   }
@@ -841,13 +848,13 @@ main {
     padding: 0.5em !important;
   }
   .content {
-    padding: 2.5em !important;
+    padding: 1em !important;
     overflow-y: scroll !important;
     scrollbar-width: none;
   }
   .content .search,
   .content .invitations {
-    padding: 2.5em !important;
+    padding: 1em !important;
   }
   .content .invitations {
     max-height: 25dvh;
@@ -855,7 +862,7 @@ main {
     scrollbar-width: none;
   }
   .content:has(#messages-container) {
-    padding: 2.5em !important;
+    padding: 1em !important;
   }
   .content:has(.create_server) {
     grid-row: span 2;
@@ -869,8 +876,8 @@ main {
   }
   .content:has(.create_server) .image img,
   .content:has(#server_posts) .image img {
-    margin-top: -2.5em !important;
-    margin-left: -2.5em !important;
+    margin-top: -1em !important;
+    margin-left: -1em !important;
   }
   .content:has(#server_posts) {
     height: 100%;
@@ -890,11 +897,11 @@ main {
     grid-template-rows: 1fr min-content;
   }
   .content:has(.create_server) {
-    padding: 2.5em !important;
+    padding: 0.5em !important;
   }
   .login,
   .register {
-    padding: 2.5em !important;
+    padding: 0.5em !important;
   }
 }
 @media screen and (max-width: 700px) {
@@ -903,9 +910,6 @@ main {
   }
 }
 @media screen and (max-width: 610px) {
-  * {
-    font-size: 12px;
-  }
   .login form,
   .register form {
     grid-template-columns: 1fr;
@@ -917,7 +921,7 @@ main {
 }
 @media screen and (max-width: 500px) {
   * {
-    font-size: 10px;
+    font-size: 14px;
   }
   .content h2 {
     font-size: 1.5em !important;
@@ -1148,6 +1152,21 @@ main {
   background-color: #252533 !important;
 }
 
+#zego-container > div > div > div.QAHxuJxRZWb3P_cbR8QA > div.lRNsiz_pTf7YmA5QMh4z > div.fQDXeFNZ1QEJGgfJP7J1 > div.fthISTIjZHhtlakLYyDz.K8gl_GRNfrP7NyOMXbYo > div.UELDhiMloXvhMBAbYeSI > div.h5i3toRnDcX9LtzT6Mw4 > div.ZegoWhiteboardToolsTextToolTips.xfngG3TNvgHyH3tsrIzq.k1jceuJUIsa2H6BRq8Y5 > div,
+#zego-container > div > div > div.QAHxuJxRZWb3P_cbR8QA > div.lRNsiz_pTf7YmA5QMh4z > div.fQDXeFNZ1QEJGgfJP7J1 > div.fthISTIjZHhtlakLYyDz.K8gl_GRNfrP7NyOMXbYo > div.UELDhiMloXvhMBAbYeSI > div.h5i3toRnDcX9LtzT6Mw4 > div.ZegoWhiteboardToolsPenToolTips.xz4Uu7new5HkZAZD8lqQ.k1jceuJUIsa2H6BRq8Y5 > div,
+#zego-container > div > div > div.QAHxuJxRZWb3P_cbR8QA > div.lRNsiz_pTf7YmA5QMh4z > div.fQDXeFNZ1QEJGgfJP7J1 > div.fthISTIjZHhtlakLYyDz.K8gl_GRNfrP7NyOMXbYo > div.UELDhiMloXvhMBAbYeSI > div.h5i3toRnDcX9LtzT6Mw4 > div.ZegoWhiteboardToolsGraphicsTooTips.FwPXfATk9_JsBBFOQ6Ub.k1jceuJUIsa2H6BRq8Y5 > div {
+  border: none !important;
+  background-color: #252533 !important;
+}
+#zego-container > div > div > div.QAHxuJxRZWb3P_cbR8QA > div.lRNsiz_pTf7YmA5QMh4z > div.fQDXeFNZ1QEJGgfJP7J1 > div.fthISTIjZHhtlakLYyDz.K8gl_GRNfrP7NyOMXbYo > div.UELDhiMloXvhMBAbYeSI > div.h5i3toRnDcX9LtzT6Mw4 > div.ZegoWhiteboardToolsTextToolTips.xfngG3TNvgHyH3tsrIzq.k1jceuJUIsa2H6BRq8Y5 > div > *,
+#zego-container > div > div > div.QAHxuJxRZWb3P_cbR8QA > div.lRNsiz_pTf7YmA5QMh4z > div.fQDXeFNZ1QEJGgfJP7J1 > div.fthISTIjZHhtlakLYyDz.K8gl_GRNfrP7NyOMXbYo > div.UELDhiMloXvhMBAbYeSI > div.h5i3toRnDcX9LtzT6Mw4 > div.ZegoWhiteboardToolsTextToolTips.xfngG3TNvgHyH3tsrIzq.k1jceuJUIsa2H6BRq8Y5 > div h3,
+#zego-container > div > div > div.QAHxuJxRZWb3P_cbR8QA > div.lRNsiz_pTf7YmA5QMh4z > div.fQDXeFNZ1QEJGgfJP7J1 > div.fthISTIjZHhtlakLYyDz.K8gl_GRNfrP7NyOMXbYo > div.UELDhiMloXvhMBAbYeSI > div.h5i3toRnDcX9LtzT6Mw4 > div.ZegoWhiteboardToolsPenToolTips.xz4Uu7new5HkZAZD8lqQ.k1jceuJUIsa2H6BRq8Y5 > div > *,
+#zego-container > div > div > div.QAHxuJxRZWb3P_cbR8QA > div.lRNsiz_pTf7YmA5QMh4z > div.fQDXeFNZ1QEJGgfJP7J1 > div.fthISTIjZHhtlakLYyDz.K8gl_GRNfrP7NyOMXbYo > div.UELDhiMloXvhMBAbYeSI > div.h5i3toRnDcX9LtzT6Mw4 > div.ZegoWhiteboardToolsPenToolTips.xz4Uu7new5HkZAZD8lqQ.k1jceuJUIsa2H6BRq8Y5 > div h3,
+#zego-container > div > div > div.QAHxuJxRZWb3P_cbR8QA > div.lRNsiz_pTf7YmA5QMh4z > div.fQDXeFNZ1QEJGgfJP7J1 > div.fthISTIjZHhtlakLYyDz.K8gl_GRNfrP7NyOMXbYo > div.UELDhiMloXvhMBAbYeSI > div.h5i3toRnDcX9LtzT6Mw4 > div.ZegoWhiteboardToolsGraphicsTooTips.FwPXfATk9_JsBBFOQ6Ub.k1jceuJUIsa2H6BRq8Y5 > div > *,
+#zego-container > div > div > div.QAHxuJxRZWb3P_cbR8QA > div.lRNsiz_pTf7YmA5QMh4z > div.fQDXeFNZ1QEJGgfJP7J1 > div.fthISTIjZHhtlakLYyDz.K8gl_GRNfrP7NyOMXbYo > div.UELDhiMloXvhMBAbYeSI > div.h5i3toRnDcX9LtzT6Mw4 > div.ZegoWhiteboardToolsGraphicsTooTips.FwPXfATk9_JsBBFOQ6Ub.k1jceuJUIsa2H6BRq8Y5 > div h3 {
+  background-color: #252533 !important;
+}
+
 .Yb8CIZ4sfRB7tGNIe5vW * {
   color: white !important;
 }
@@ -1164,4 +1183,27 @@ main {
 
 #zego-container > div > div > div.QAHxuJxRZWb3P_cbR8QA > div.M4HRY2n7rpNAd1UjDNZe > div.Z2PYS5vNVghY4m46zQQV > div > div > div {
   white-space: nowrap !important;
+}
+
+.TTgLs8cpg66Z6CXgHGVA {
+  font-size: 0 !important;
+  background-color: rgb(26.2784090909, 26.2784090909, 36.2215909091) !important;
+  color: rgb(228.7215909091, 228.7215909091, 218.7784090909) !important;
+  border: none !important;
+  line-height: normal !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+.TTgLs8cpg66Z6CXgHGVA::before {
+  color: rgb(228.7215909091, 228.7215909091, 218.7784090909) !important;
+  font-size: 16px !important;
+  content: "Окей" !important;
+  transition: all 0.1s ease-out;
+}
+.TTgLs8cpg66Z6CXgHGVA:hover {
+  background-color: rgb(15.5568181818, 15.5568181818, 21.4431818182);
+  color: rgb(239.4431818182, 239.4431818182, 233.5568181818);
+}
+.TTgLs8cpg66Z6CXgHGVA:hover::before {
+  color: rgb(239.4431818182, 239.4431818182, 233.5568181818);
 }/*# sourceMappingURL=style.css.map */

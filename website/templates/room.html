@@ -1,9 +1,10 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block content %}
 <style>.my_servers, .aside { display: none !important; }</style>
 <script src="https://unpkg.com/zego-superboard-web@2.15.3/index.js"></script>
-<script type="text/javascript" src="https://unpkg.com/@zegocloud/zego-uikit-prebuilt/zego-uikit-prebuilt.js"></script>
+<script type="text/javascript" src="{% static 'scripts/zego-uikit-prebuilt.js' %}"></script>
 <script type="text/javascript">
 window.onload = function () {
     const roomID = '{{ room }}';
