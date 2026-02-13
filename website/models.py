@@ -167,7 +167,7 @@ class Message(models.Model):
         super().save(*args, **kwargs)
 
     def __str__(self):
-        return f'Сообщение от {self.sender} к {self.recipient} ({self.timestamp})'
+        return ('[Файл]' if self.uploaded_file else '') + f'Сообщение от {self.sender} к {self.recipient} ({self.timestamp})'
 
     class Meta:
         verbose_name = 'сообщение'
