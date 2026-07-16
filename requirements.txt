@@ -4,7 +4,6 @@ autobahn==23.1.2
 Automat==24.8.1
 backports.zoneinfo==0.2.1
 certifi==2026.1.4
-cffi==1.17.1
 channels==4.2.2
 charset-normalizer==3.4.4
 constantly==23.10.4
@@ -26,6 +25,7 @@ pyasn1_modules==0.4.2
 pycparser==2.23
 pyOpenSSL==25.3.0
 python-dotenv==1.0.1
+psycopg2-binary==2.9.10
 requests==2.32.4
 requests-oauthlib==2.0.0
 service-identity==24.2.0

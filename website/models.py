@@ -176,3 +176,17 @@ class Message(models.Model):
             models.Index(fields=['sender', 'recipient', 'id']),
             models.Index(fields=['recipient', 'sender', 'id']),
         ]
+
+
+class ZegoCloudConfiguration(models.Model):
+    app_id = models.CharField('App ID', max_length=255)
+    server_secret = models.CharField('Server Secret', max_length=255)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f'ZegoCloud Configuration from {self.created_at}'
+
+    class Meta:
+        verbose_name = 'конфигурацию ZegoCloud'
+        verbose_name_plural = 'Конфигурации ZegoCloud'
+        ordering = ['-created_at']

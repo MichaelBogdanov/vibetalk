@@ -477,8 +477,8 @@ def create_room(request):
 @login_required
 def room(request, room_id=None, user_id=None):
     data = {
-        'AppID': settings.ZEGOCLOUD_APPID,
-        'ServerSecret': settings.ZEGOCLOUD_SERVERSECRET
+        'AppID': ZegoCloudConfiguration.objects.last().app_id,
+        'ServerSecret': ZegoCloudConfiguration.objects.last().server_secret
     }
     if room_id:
         # Если пользователь участник сервера
