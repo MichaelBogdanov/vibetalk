@@ -1,7 +1,7 @@
 import os
 from django.shortcuts import render, redirect
 from django.contrib.auth import login, logout
-from django.http import HttpResponse, HttpResponseBadRequest, HttpResponseForbidden, JsonResponse
+from django.http import HttpResponse, HttpResponseForbidden, JsonResponse
 from django.core.serializers.json import DjangoJSONEncoder
 from django.db.models import Q
 from django.http import FileResponse, Http404
@@ -11,7 +11,7 @@ from django.urls import reverse
 from .forms import *
 from .models import *
 import mimetypes
-from django.utils.text import slugify
+from django.template.loader import render_to_string
 
 
 # Create your views here.
@@ -113,8 +113,19 @@ def add_friend(request):
             try:
                 user_to = CustomUser.objects.get(pk=user_id)
                 user_from = request.user
+                if Friendship.objects.filter(user_from=user_from, user_to=user_to).exists():
+                    return JsonResponse({'status': 'error', 'message': 'Заявка уже отправлена'})
                 Friendship.objects.create(user_from=user_from, user_to=user_to)
-                return JsonResponse({'status': 'ok'})
+                return JsonResponse({
+                    "status": "ok",
+                    "friends_html": render_to_string(
+                        "inc/_friends.html",
+                        {
+                            "friends": user_from.get_friends()
+                        },
+                        request=request
+                    )
+                })
             except CustomUser.DoesNotExist:
                 return JsonResponse({'status': 'error', 'message': 'Пользователь не найден'})
     return JsonResponse({'status': 'error', 'message': 'Неверный метод запроса'})
@@ -477,8 +488,8 @@ def create_room(request):
 @login_required
 def room(request, room_id=None, user_id=None):
     data = {
-        'AppID': ZegoCloudConfiguration.objects.last().app_id,
-        'ServerSecret': ZegoCloudConfiguration.objects.last().server_secret
+        'AppID': ZegoCloudConfiguration.objects.first().app_id,
+        'ServerSecret': ZegoCloudConfiguration.objects.first().server_secret
     }
     if room_id:
         # Если пользователь участник сервера

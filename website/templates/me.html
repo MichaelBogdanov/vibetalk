@@ -74,7 +74,7 @@ $(document).ready(function () {
     });
     // Обработка клика по кнопке "Добавить в друзья"
     $('body').on('click', '.add-friend-button', function () {
-        let userId = $(this).data('user-id');
+        const userId = $(this).data('user-id');
         $.ajax({
             url: "{% url 'website:add_friend' %}",
             method: 'POST',
@@ -123,7 +123,7 @@ $(document).ready(function () {
     <article data-id="{{ invitation.id }}">
         <i class="fa fa-user"></i>
         <p>{{ invitation }}</p>
-        <button class="add-friend-button" data-user-id="{{ invitation.id }}"> <i class="fa fa-plus"></i></button>
+        <button class="accept-friend-request" data-user-id="{{ invitation.id }}"> <i class="fa fa-plus"></i></button>
         <small style="padding-right: .5em">{{ invitation.email }}</small>
     </article>
     {% endfor %}
@@ -133,6 +133,35 @@ $(document).ready(function () {
 </section>
 <script>
 $(document).ready(function () {
+    // Обработка клика по кнопке "Принять заявку"
+    $('.accept-friend-request').on('click', function () {
+        const article = $(this).closest('article');
+        const userId = $(this).data('user-id');
+        $.ajax({
+            url: `{% url 'website:add_friend' %}`,
+            method: 'POST',
+            headers: {'X-CSRFToken': csrftoken},
+            data: { user_id: userId },
+            success: function(response) {
+                if (response.status === 'ok') {
+                    article.remove();
+                    $('aside').html(response.friends_html);
+
+                    showToast({
+                        icon: "success",
+                        title: "Успех",
+                        text: "Заявка успешно принята",
+                    });
+                } else {
+                    showToast({
+                        icon: "error",
+                        title: "Ошибка",
+                        text: "Ошибка при принятии заявки на дружбу",
+                    });
+                }
+            }
+        });
+    });
     // Обработка клика по кнопке "Удалить из друзей"
     $('.cancel-friend-request').on('click', function () {
         const article = $(this).closest('article');
