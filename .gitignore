@@ -1,5 +1,9 @@
 ./website/media/
 ./website/private_media/
+./website/static/admin/
+./website/static/colorfield/
+./website/static/django_extensions/
+./website/static/fontawesome_5/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
