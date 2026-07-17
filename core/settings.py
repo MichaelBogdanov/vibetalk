@@ -183,7 +183,7 @@ CHANNEL_LAYERS = {
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 # Перенаправление всех небезопасных запросов на HTTPS
-SECURE_SSL_REDIRECT = True
+SECURE_SSL_REDIRECT = not DEBUG
 
 # Передача cookie только по HTTPS
 SESSION_COOKIE_SECURE = True
