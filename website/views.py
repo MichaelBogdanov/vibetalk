@@ -124,6 +124,14 @@ def add_friend(request):
                             "friends": user_from.get_friends()
                         },
                         request=request
+                    ),
+                    "invitations_html": render_to_string(
+                        "inc/_invitations.html",
+                        {
+                            "send_invitations": user_from.get_send_invitations(),
+                            "received_invitations": user_from.get_received_invitations()
+                        },
+                        request=request
                     )
                 })
             except CustomUser.DoesNotExist:

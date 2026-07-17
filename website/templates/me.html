@@ -82,19 +82,21 @@ $(document).ready(function () {
             data: { user_id: userId },
             success: function (response) {
                 if (response.status === 'ok') {
+                    $('#results-container').empty();
+                    $('#search-input').val("");
+                    // Обновляем блок с заявками
+                    $('#invitations-section').html(response.invitations_html);
+                    
                     showToast({
                         icon: "success",
                         title: "Успех",
                         text: "Заявка на дружбу успешно отправлена",
-                    }).then(() => {
-                        location.reload();
-                        $('#search-input').val("");
                     });
                 } else {
                     showToast({
                         icon: "error",
                         title: "Ошибка",
-                        text: "Ошибка при отправке заявки на дружбу",
+                        text: response.message || "Ошибка при отправке заявки на дружбу",
                     });
                 }
             }
@@ -102,92 +104,7 @@ $(document).ready(function () {
     });
 });
 </script>
-<section class="invitations">
-    <h2>Заявки</h2>
-    {% if send_invitations %}
-    <h3>Отправленные:</h3>
-    {% for invitation in send_invitations %}
-    <article data-id="{{ invitation.id }}">
-        <i class="fa fa-user"></i>
-        <p>{{ invitation }}</p>
-        <button class="cancel-friend-request"> <i class="fa fa-ban"></i></button>
-        <small style="padding-right: .5em">{{ invitation.email }}</small>
-    </article>
-    {% endfor %}
-    {% else %}
-    <h3>Отправленных заявок нет</h3>
-    {% endif %}
-    {% if received_invitations %}
-    <h3>Полученные:</h3>
-    {% for invitation in received_invitations %}
-    <article data-id="{{ invitation.id }}">
-        <i class="fa fa-user"></i>
-        <p>{{ invitation }}</p>
-        <button class="accept-friend-request" data-user-id="{{ invitation.id }}"> <i class="fa fa-plus"></i></button>
-        <small style="padding-right: .5em">{{ invitation.email }}</small>
-    </article>
-    {% endfor %}
-    {% else %}
-    <h3>Полученных заявок нет</h3>
-    {% endif %}
+<section class="invitations" id="invitations-section">
+    {% include 'inc/_invitations.html' %}
 </section>
-<script>
-$(document).ready(function () {
-    // Обработка клика по кнопке "Принять заявку"
-    $('.accept-friend-request').on('click', function () {
-        const article = $(this).closest('article');
-        const userId = $(this).data('user-id');
-        $.ajax({
-            url: `{% url 'website:add_friend' %}`,
-            method: 'POST',
-            headers: {'X-CSRFToken': csrftoken},
-            data: { user_id: userId },
-            success: function(response) {
-                if (response.status === 'ok') {
-                    article.remove();
-                    $('aside').html(response.friends_html);
-
-                    showToast({
-                        icon: "success",
-                        title: "Успех",
-                        text: "Заявка успешно принята",
-                    });
-                } else {
-                    showToast({
-                        icon: "error",
-                        title: "Ошибка",
-                        text: "Ошибка при принятии заявки на дружбу",
-                    });
-                }
-            }
-        });
-    });
-    // Обработка клика по кнопке "Удалить из друзей"
-    $('.cancel-friend-request').on('click', function () {
-        const article = $(this).closest('article');
-        const userId = parseInt(article.data('id'));
-        $.ajax({
-            url: `/cancel-friend-request/${userId}/`,
-            method: 'POST',
-            headers: {'X-CSRFToken': csrftoken},
-            success: function(response) {
-                if (response.message === 'Заявка успешно отменена') {
-                    article.remove();
-                    showToast({
-                        icon: "success",
-                        title: "Успех",
-                        text: "Заявка успешно отменена",
-                    });
-                } else {
-                    showToast({
-                        icon: "error",
-                        title: "Ошибка",
-                        text: "Ошибка при отмене заявки на дружбу",
-                    });
-                }
-            }
-        });
-    });
-});
-</script>
 {% endblock %}
