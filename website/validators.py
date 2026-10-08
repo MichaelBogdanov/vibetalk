@@ -17,3 +17,13 @@ def validate_password(value):
         raise ValidationError('Пароль должен содержать хотя бы одну цифру.')
     if not re.search(r'[!@#$%^&*(),.?":{}|<>]', value):
         raise ValidationError('Пароль должен содержать хотя бы один специальный символ.')
+
+
+class PasswordRequirementsValidator:
+    """Adapt the project's password rules to Django's validator interface."""
+
+    def validate(self, password, user=None):
+        validate_password(password)
+
+    def get_help_text(self):
+        return 'Пароль должен содержать не менее 8 символов, цифру и специальный символ.'
