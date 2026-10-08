@@ -12,7 +12,7 @@
 <p id="filename">&nbsp;</p>
 <form enctype="multipart/form-data" method="post" id="message-form">
     {% csrf_token %}
-    <textarea id="message" name="message" rows="3" placeholder="Введите ваше сообщение" required></textarea>
+    <textarea id="message" name="message" rows="3" maxlength="8192" placeholder="Введите ваше сообщение" required></textarea>
     <label for="file_upload" class="custom_file_upload">
         {% fa5_icon 'plus' 'fa' %}
     </label>

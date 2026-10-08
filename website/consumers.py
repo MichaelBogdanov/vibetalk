@@ -40,11 +40,22 @@ class PrivateChatConsumer(AsyncJsonWebsocketConsumer):
             await self.channel_layer.group_discard(self.group_name, self.channel_name)
 
     async def receive_json(self, content, **kwargs):
+        if not isinstance(content, dict):
+            return
+
         action = content.get("action")
         
         if action == "send":
-            text = content.get("text", "").strip()
-            if not text:
+            text = content.get("text")
+            if not isinstance(text, str):
+                return
+
+            text = text.strip()
+            if not text or len(text) > 8192:
+                return
+
+            if not await self._is_allowed(self.user.id, self.peer_id):
+                await self.close(code=4403)
                 return
             
             # Создаем сообщение в базе

@@ -250,7 +250,9 @@ def conversation(request, user_id):
 
     if request.method == 'POST':
         recipient_id = recipient.pk
-        message_text = request.POST.get('message')
+        message_text = request.POST.get('message', '').strip()
+        if len(message_text) > 8192:
+            return JsonResponse({'status': 'error', 'message': 'Сообщение слишком длинное'}, status=400)
         uploaded_file = request.FILES.get('file_upload')
 
         message = Message(
