@@ -477,6 +477,9 @@ def join_server(request, server_id):
             return redirect('website:servers')  # перенаправление на страницу ошибки
 
         user = request.user
+
+        if server.is_private and server.owner_id != user.pk:
+            return HttpResponseForbidden('Приватный сервер доступен только по приглашению')
         
         # Проверяем, уже является ли пользователь участником данного сервера
         if not ServerMember.objects.filter(member=user, server=server).exists():
