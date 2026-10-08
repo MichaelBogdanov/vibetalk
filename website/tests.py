@@ -58,7 +58,7 @@ class PasswordValidatorTests(TestCase):
     def test_no_digit_password(self):
         # Проверяем, что пароль без цифры вызывает ошибку
         with self.assertRaises(ValidationError):
-            validate_password("NoDigitPassword")
+            validate_password("PasswordWithoutDigits!")
 
     def test_no_special_char_password(self):
         # Проверяем, что пароль без специального символа вызывает ошибку
