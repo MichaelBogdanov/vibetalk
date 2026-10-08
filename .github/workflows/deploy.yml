@@ -34,4 +34,4 @@ jobs:
             python manage.py collectstatic --noinput
 
             # Перезапускаем daphne
-            sudo systemctl restart vibetalk-daphne.service
+            sudo -n /usr/bin/systemctl restart vibetalk-daphne.service
