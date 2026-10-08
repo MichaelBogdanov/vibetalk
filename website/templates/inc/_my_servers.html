@@ -1,27 +1,40 @@
 {% load static %}
 {% load fontawesome_5 %}
-<section class="my_servers">
+<nav class="my_servers" aria-label="Навигация по VibeTalk">
     <ul>
-        <li>
-            <a href="/"><img src="{% static 'favicon/favicon.png' %}" alt=""></a>
+        <li class="brand-item{% if request.resolver_match.url_name == 'home' %} active{% endif %}">
+            <a href="{% url 'website:home' %}" aria-label="Главная VibeTalk"{% if request.resolver_match.url_name == 'home' %} aria-current="page"{% endif %}>
+                <img src="{% static 'favicon/favicon.png' %}" alt="">
+            </a>
         </li>
         {% if user.is_superuser %}
-        <li><a href="/admin/website/">
-            {% fa5_icon 'users-cog' 'fas' %}
-        </a></li>
-        {% endif %}
-        <hr>
-        {% for server in my_servers %}
         <li>
-            <a href="/server/{{ server.id }}"><img src="/media/{{ server.photo }}" alt=""></a>
+            <a href="/admin/website/" aria-label="Управление сайтом" title="Управление сайтом">
+            {% fa5_icon 'users-cog' 'fas' %}
+            </a>
+        </li>
+        {% endif %}
+        <li class="server-divider" role="presentation"></li>
+        {% for server in my_servers %}
+        {% url 'website:server' server.id as server_url %}
+        <li{% if request.path == server_url %} class="active"{% endif %}>
+            <a href="{{ server_url }}" aria-label="{{ server.name }}" title="{{ server.name }}"{% if request.path == server_url %} aria-current="page"{% endif %}>
+                <img src="/media/{{ server.photo }}" alt="">
+            </a>
         </li>
         {% endfor %}
-        <li><a href="/servers/">
+        <li{% if request.resolver_match.url_name == 'servers' %} class="active"{% endif %}>
+            <a href="{% url 'website:servers' %}" aria-label="Обзор серверов" title="Обзор серверов"{% if request.resolver_match.url_name == 'servers' %} aria-current="page"{% endif %}>
             {% fa5_icon 'compass' 'fa' %}
-        </a></li>
-        <li><a href="/create_server/">
+            </a>
+        </li>
+        <li{% if request.resolver_match.url_name == 'create_server' %} class="active"{% endif %}>
+            <a href="{% url 'website:create_server' %}" aria-label="Создать сервер" title="Создать сервер"{% if request.resolver_match.url_name == 'create_server' %} aria-current="page"{% endif %}>
             {% fa5_icon 'plus' 'fa' %}
-        </a></li>
+            </a>
+        </li>
     </ul>
-    <a href="/logout/">{% fa5_icon 'sign-out-alt' 'fas' %}</a>
-</section>
+    <a class="logout-link" href="{% url 'website:logout' %}" aria-label="Выйти из аккаунта" title="Выйти">
+        {% fa5_icon 'sign-out-alt' 'fas' %}
+    </a>
+</nav>

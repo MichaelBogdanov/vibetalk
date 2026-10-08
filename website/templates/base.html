@@ -19,12 +19,13 @@ function showToast({ icon = "info", title = "", text = "", timer = 4000 }) {
 }
 </script>
 <body>
-    <main>
+    <a class="skip-link" href="#main-content">Перейти к содержимому</a>
+    <main class="app-shell">
         {% include 'inc/_my_servers.html' %}
-        <aside class="aside">
+        <aside class="aside" aria-label="Навигация по разделу">
             {% block aside %}{% endblock %}
         </aside>
-        <section class="content">
+        <section class="content" id="main-content" aria-label="Основное содержимое">
             {% block content %}{% endblock %}
         </section>
     </main>

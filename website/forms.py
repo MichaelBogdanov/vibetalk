@@ -6,11 +6,11 @@ from .models import *
 class CustomUserCreationForm(UserCreationForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['email'].widget.attrs.update({'placeholder': 'Введите вашу электронную почту'})
-        self.fields['first_name'].widget.attrs.update({'placeholder': 'Введите ваше имя'})
-        self.fields['last_name'].widget.attrs.update({'placeholder': 'Введите вашу фамилию'})
-        self.fields['password1'].widget.attrs.update({'placeholder': 'Введите ваш пароль'})
-        self.fields['password2'].widget.attrs.update({'placeholder': 'Повторите ваш пароль'})
+        self.fields['email'].widget.attrs.update({'placeholder': 'Введите вашу электронную почту', 'autocomplete': 'email'})
+        self.fields['first_name'].widget.attrs.update({'placeholder': 'Введите ваше имя', 'autocomplete': 'given-name'})
+        self.fields['last_name'].widget.attrs.update({'placeholder': 'Введите вашу фамилию', 'autocomplete': 'family-name'})
+        self.fields['password1'].widget.attrs.update({'placeholder': 'Введите ваш пароль', 'autocomplete': 'new-password'})
+        self.fields['password2'].widget.attrs.update({'placeholder': 'Повторите ваш пароль', 'autocomplete': 'new-password'})
 
     class Meta:
         model = CustomUser
@@ -24,8 +24,8 @@ class CustomUserCreationForm(UserCreationForm):
 class CustomAuthenticationForm(AuthenticationForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['username'].widget.attrs.update({'placeholder': 'Введите вашу электронную почту'})
-        self.fields['password'].widget.attrs.update({'placeholder': 'Введите ваш пароль'})
+        self.fields['username'].widget.attrs.update({'placeholder': 'Введите вашу электронную почту', 'autocomplete': 'email'})
+        self.fields['password'].widget.attrs.update({'placeholder': 'Введите ваш пароль', 'autocomplete': 'current-password'})
 
     class Meta:
         model = CustomUser

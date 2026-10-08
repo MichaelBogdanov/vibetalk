@@ -3,7 +3,7 @@
 
 {% block aside %}
 {% if rooms %}
-<h3>Комнаты сервера {% if server.owner == user %}<button class="create-room-button">{% fa5_icon 'plus' 'fa' %}</button>{% endif %}</h3>
+<h3>Голосовые комнаты {% if server.owner == user %}<button class="create-room-button icon-button" type="button" aria-label="Создать голосовую комнату" title="Создать голосовую комнату">{% fa5_icon 'plus' 'fa' %}</button>{% endif %}</h3>
 <ul class="rooms">
     {% for room in rooms %}
     <li>
@@ -12,18 +12,24 @@
     {% endfor %}
 </ul>
 {% else %}
-<h3>Комнат пока нет {% if server.owner == user %}<button class="create-room-button">{% fa5_icon 'plus' 'fa' %}</button>{% endif %}</h3>
+<h3>Голосовые комнаты {% if server.owner == user %}<button class="create-room-button icon-button" type="button" aria-label="Создать голосовую комнату" title="Создать голосовую комнату">{% fa5_icon 'plus' 'fa' %}</button>{% endif %}</h3>
 <ul class="rooms"></ul>
 {% endif %}
 {% endblock %}
 
 {% block content %}
-<article class="image">
-    <img src="/media/{{ server.photo }}" alt="">
-    <h2>{{ server.name }}</h2>
-</article>
-<p>{{ server.description }}</p>
-<section id="server_posts">
+<header class="server-cover">
+    <img src="/media/{{ server.photo }}" alt="" fetchpriority="high">
+    <h1>{{ server.name }}</h1>
+</header>
+<p class="server-description">{{ server.description|default:"Знакомьтесь, общайтесь и делитесь новостями этого сообщества." }}</p>
+<section id="server_posts" aria-labelledby="posts-heading">
+    <header class="section-heading">
+        <div>
+            <p class="eyebrow">Лента сообщества</p>
+            <h2 id="posts-heading">Объявления</h2>
+        </div>
+    </header>
     {% if posts %}
     {% for post in posts %}
     <article>
@@ -33,13 +39,13 @@
     </article>
     {% endfor %}
     {% else %}
-    <h3 style="text-align: center; font-size: 1.25em;">Постов пока нет</h3>
+    <p class="empty-feed">Здесь пока нет объявлений. Добавьте первое, чтобы начать разговор.</p>
     {% endif %}
 </section>
-<form method="post">
+<form method="post" id="server-post-form" class="post-composer" aria-label="Опубликовать объявление">
     {% csrf_token %}
     {{ form.as_p }}
-    <button type="submit">Опубликовать</button>
+    <button type="submit">{% fa5_icon 'paper-plane' 'fa' %}<span>Опубликовать</span></button>
 </form>
 
 <script>
@@ -62,7 +68,9 @@ function getCookie(name) {
 var csrftoken = getCookie('csrftoken');
 
 $('body').on('click', '.create-room-button', function () {
-    let userId = $(this).data('user-id');
+    const button = $(this);
+    if (button.prop('disabled')) return;
+    button.prop('disabled', true).attr('aria-busy', 'true');
     $.ajax({
         url: "{% url 'website:create_room' %}",
         method: 'POST',
@@ -70,12 +78,18 @@ $('body').on('click', '.create-room-button', function () {
         data: { server_id: `{{ server.id }}` },
         success: function (response) {
             if (response.status === 'ok') {
-                Swal.fire({
+                const roomLink = $('<a>', {
+                    href: '/room/' + response.room_id + '/',
+                    title: 'Комната ' + response.room_id
+                }).append(
+                    $('<i>', { class: 'fa fa-microphone', 'aria-hidden': 'true' }),
+                    document.createTextNode('Комната ' + response.room_id)
+                );
+                $('.rooms').append($('<li>').append(roomLink));
+                showToast({
                     icon: "success",
-                    title: "Успех",
-                    text: "Комната успешно создана",
-                }).then(() => {
-                    location.reload();
+                    title: "Голосовая комната создана",
+                    text: "Можно сразу перейти к разговору.",
                 });
             } else {
                 Swal.fire({
@@ -84,6 +98,16 @@ $('body').on('click', '.create-room-button', function () {
                     text: "Ошибка при создании комнаты",
                 });
             }
+        },
+        error: function () {
+            showToast({
+                icon: "error",
+                title: "Не удалось создать комнату",
+                text: "Проверьте соединение и попробуйте ещё раз.",
+            });
+        },
+        complete: function () {
+            button.prop('disabled', false).removeAttr('aria-busy');
         }
     });
 });

@@ -1,13 +1,22 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang='ru'>
 {% include 'inc/_head.html' %}
-<body class="login">
-    <h2>Вход</h2>
-    <form method='post'>
-        {% csrf_token %}
-        {{ form.as_p }}
-        <button type='submit'>Войти</button>
-    </form>
-    <a href="/register/">Ещё нет аккаунта?</a>
+<body class="auth-page">
+    <a class="auth-brand" href="/" aria-label="VibeTalk — на главную">
+        <img src="{% static 'favicon/favicon.png' %}" alt="">
+        <span>VibeTalk</span>
+    </a>
+    <main class="auth-panel">
+        <p class="eyebrow">С возвращением</p>
+        <h1>Войдите в аккаунт</h1>
+        <p class="auth-description">Продолжите общаться с друзьями и сообществами.</p>
+        <form method="post">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <button type="submit">Войти</button>
+        </form>
+        <p class="auth-switch">Ещё нет аккаунта? <a href="/register/">Зарегистрироваться</a></p>
+    </main>
 </body>
 </html>

@@ -7,19 +7,29 @@
 
 {% block content %}
 <section class="search">
-    <h2>Поиск пользователей</h2>
-    <input type="text" id="search-input" placeholder="Введите почту, имя или фамилию...">
-    <section id="results-container"></section>
+    <header class="section-heading">
+        <div>
+            <p class="eyebrow">Люди</p>
+            <h1>Найдите друзей</h1>
+            <p>Общайтесь один на один или приглашайте знакомых в свои сообщества.</p>
+        </div>
+    </header>
+    <label class="field-label" for="search-input">Поиск по имени или почте</label>
+    <div class="search-box">
+        {% fa5_icon 'search' 'fa' %}
+        <input type="search" id="search-input" placeholder="Например, Анна или anna@example.com" autocomplete="off" aria-describedby="search-hint" aria-controls="results-container">
+    </div>
+    <p class="search-hint" id="search-hint">Введите не меньше двух символов.</p>
+    <p class="search-status" id="search-status" data-state="idle" role="status" aria-live="polite">Начните вводить, чтобы найти людей.</p>
+    <section id="results-container" aria-label="Результаты поиска"></section>
 </section>
 <script>
-// Функция для получения CSRF-токена
 function getCookie(name) {
     var cookieValue = null;
     if (document.cookie && document.cookie !== '') {
         var cookies = document.cookie.split(';');
         for (var i = 0; i < cookies.length; i++) {
             var cookie = jQuery.trim(cookies[i]);
-            // Проверяем, совпадает ли имя куки с искомым именем
             if (cookie.substring(0, name.length + 1) === (name + '=')) {
                 cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
                 break;
@@ -31,50 +41,83 @@ function getCookie(name) {
 var csrftoken = getCookie('csrftoken');
 
 $(document).ready(function () {
-    $('#search-input').on('keyup', function () {
-        let query = $(this).val().trim();
-        if (query.length > 0) {
-            $.getJSON("{% url 'website:search_users' %}", { q: query }, function (response) {
-                // Очищаем контейнер результатов
-                $('#results-container').empty();
+    const input = $('#search-input');
+    const results = $('#results-container');
+    const status = $('#search-status');
+    let searchTimer = null;
+    let activeSearch = null;
 
-                // Добавляем результаты поиска
-                response.forEach(function (user) {
-                    let button = $('<button>', {
-                        text: '',
-                        class: 'add-friend-button',
-                        'data-user-id': user.id,
-                    });
-                    let email = $('<small>', {
-                        text: user.email
-                    });
-                    let p = $('<p>', {
-                        text: user.name,
-                    });
-                    let br = $('<br>');
-                    let i_user = $('<i>', {
-                        class: 'fa fa-user'
-                    });
-                    let i_user_plus = $('<i>', {
-                        class: 'fa fa-user-plus'
-                    });
-                    button.append(i_user_plus)
-                    let resultItem = $('<article>')
-                        .append(i_user)
-                        .append(p)
-                        .append(button)
-                        .append(email);
-                    $('#results-container').append(resultItem);
-                });
-            });
-        } else {
-            // Если строка пустая, очищаем контейнер результатов
-            $('#results-container').empty();
+    function setStatus(message, state) {
+        status.attr('data-state', state || 'idle').text(message);
+    }
+
+    function renderResults(users) {
+        results.empty();
+        if (!Array.isArray(users) || users.length === 0) {
+            setStatus('Никого не нашли. Попробуйте изменить запрос.', 'empty');
+            return;
         }
+
+        setStatus('Найдено: ' + users.length, 'success');
+        users.forEach(function (user) {
+            const addButton = $('<button>', {
+                type: 'button',
+                class: 'add-friend-button',
+                'data-user-id': user.id,
+                'aria-label': 'Отправить заявку: ' + user.name,
+                title: 'Добавить в друзья'
+            }).append($('<i>', { class: 'fa fa-user-plus', 'aria-hidden': 'true' }));
+            const resultItem = $('<article>')
+                .append($('<i>', { class: 'fa fa-user', 'aria-hidden': 'true' }))
+                .append($('<p>').text(user.name || 'Пользователь VibeTalk'))
+                .append(addButton)
+                .append($('<small>').text(user.email));
+            results.append(resultItem);
+        });
+    }
+
+    function searchUsers(query) {
+        if (activeSearch) activeSearch.abort();
+        results.empty();
+        setStatus('Ищем людей…', 'loading');
+        const request = $.ajax({
+            url: "{% url 'website:search_users' %}",
+            data: { q: query },
+            dataType: 'json'
+        });
+        activeSearch = request;
+        request.done(function (response) {
+            if (query === input.val().trim()) renderResults(response);
+        }).fail(function (_xhr, stateName) {
+            if (stateName !== 'abort' && query === input.val().trim()) {
+                results.empty();
+                setStatus('Поиск временно недоступен. Попробуйте ещё раз.', 'error');
+            }
+        }).always(function () {
+            if (activeSearch === request) activeSearch = null;
+        });
+    }
+
+    input.on('input', function () {
+        const query = input.val().trim();
+        clearTimeout(searchTimer);
+        if (activeSearch) {
+            activeSearch.abort();
+            activeSearch = null;
+        }
+        results.empty();
+        if (query.length < 2) {
+            setStatus(query ? 'Введите ещё хотя бы один символ.' : 'Начните вводить, чтобы найти людей.', 'idle');
+            return;
+        }
+        searchTimer = setTimeout(function () { searchUsers(query); }, 240);
     });
-    // Обработка клика по кнопке "Добавить в друзья"
+
     $('body').on('click', '.add-friend-button', function () {
-        const userId = $(this).data('user-id');
+        const button = $(this);
+        const userId = button.data('user-id');
+        if (button.prop('disabled')) return;
+        button.prop('disabled', true).attr('aria-busy', 'true');
         $.ajax({
             url: "{% url 'website:add_friend' %}",
             method: 'POST',
@@ -82,23 +125,34 @@ $(document).ready(function () {
             data: { user_id: userId },
             success: function (response) {
                 if (response.status === 'ok') {
-                    $('#results-container').empty();
-                    $('#search-input').val("");
-                    // Обновляем блок с заявками
+                    button.closest('article').remove();
+                    const remaining = results.children().length;
+                    setStatus(
+                        remaining ? 'Осталось результатов: ' + remaining : 'Заявка отправлена. Можно найти других людей.',
+                        'success'
+                    );
                     $('#invitations-section').html(response.invitations_html);
-                    
                     showToast({
                         icon: "success",
-                        title: "Успех",
-                        text: "Заявка на дружбу успешно отправлена",
+                        title: "Заявка отправлена",
+                        text: "Когда её примут, вы сможете начать переписку.",
                     });
                 } else {
+                    button.prop('disabled', false).removeAttr('aria-busy');
                     showToast({
                         icon: "error",
                         title: "Ошибка",
                         text: response.message || "Ошибка при отправке заявки на дружбу",
                     });
                 }
+            },
+            error: function () {
+                button.prop('disabled', false).removeAttr('aria-busy');
+                showToast({
+                    icon: "error",
+                    title: "Не удалось отправить заявку",
+                    text: "Проверьте соединение и попробуйте ещё раз.",
+                });
             }
         });
     });

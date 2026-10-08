@@ -1,12 +1,12 @@
 {% load fontawesome_5 %}
-<h3>Мои друзья</h3>
-<ul class="friends" id="friends-list">
+<h3>Личные сообщения</h3>
+<ul class="friends" id="friends-list" aria-label="Список друзей">
     {% if not friend %}
     <li class="active">
     {% else %}
     <li>
     {% endif %}
-        <a href="/">{% fa5_icon 'search' 'fa' %}Найти друзей</a>
+        <a href="/" aria-label="Найти друзей"{% if not friend %} aria-current="page"{% endif %}>{% fa5_icon 'search' 'fa' %}Найти друзей</a>
     </li>
 
     {% for user in friends %}
@@ -15,7 +15,7 @@
     {% else %}
     <li>
     {% endif %}
-        <a href="{% url 'website:conversation' user.pk %}">
+        <a href="{% url 'website:conversation' user.pk %}" aria-label="Открыть переписку: {{ user }}"{% if user == friend %} aria-current="page"{% endif %}>
             {% fa5_icon 'user' 'fa' %}
             {{ user }}
             <small>{{ user.email }}</small>

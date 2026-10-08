@@ -1,34 +1,36 @@
-<h2>Заявки</h2>
+<h2>Заявки в друзья</h2>
 
 <section id="sended-invitations">
     {% if send_invitations %}
-    <h3>Отправленные:</h3>
+    <h3>Отправленные</h3>
     {% for invitation in send_invitations %}
     <article data-id="{{ invitation.id }}">
         <i class="fa fa-user"></i>
         <p>{{ invitation }}</p>
-        <button class="cancel-friend-request"> <i class="fa fa-ban"></i></button>
-        <small style="padding-right: .5em">{{ invitation.email }}</small>
+        <button type="button" class="cancel-friend-request" aria-label="Отменить заявку: {{ invitation }}" title="Отменить заявку"><i class="fa fa-ban" aria-hidden="true"></i></button>
+        <small>{{ invitation.email }}</small>
     </article>
     {% endfor %}
     {% else %}
-    <h3>Отправленных заявок нет</h3>
+    <h3>Отправленные</h3>
+    <p class="invitation-empty">Здесь появятся заявки, которые вы отправите.</p>
     {% endif %}
 </section>
 
 <section id="received-invitations">
     {% if received_invitations %}
-    <h3>Полученные:</h3>
+    <h3>Полученные</h3>
     {% for invitation in received_invitations %}
     <article data-id="{{ invitation.id }}">
         <i class="fa fa-user"></i>
         <p>{{ invitation }}</p>
-        <button class="accept-friend-request" data-user-id="{{ invitation.id }}"> <i class="fa fa-plus"></i></button>
-        <small style="padding-right: .5em">{{ invitation.email }}</small>
+        <button type="button" class="accept-friend-request" data-user-id="{{ invitation.id }}" aria-label="Принять заявку: {{ invitation }}" title="Принять заявку"><i class="fa fa-check" aria-hidden="true"></i></button>
+        <small>{{ invitation.email }}</small>
     </article>
     {% endfor %}
     {% else %}
-    <h3>Полученных заявок нет</h3>
+    <h3>Полученные</h3>
+    <p class="invitation-empty">Новых заявок пока нет.</p>
     {% endif %}
 </section>
 
@@ -36,8 +38,11 @@
 $(document).ready(function () {
     // Обработка клика по кнопке "Принять заявку"
     $('.accept-friend-request').on('click', function () {
+        const button = $(this);
         const article = $(this).closest('article');
         const userId = $(this).data('user-id');
+        if (button.prop('disabled')) return;
+        button.prop('disabled', true).attr('aria-busy', 'true');
         $.ajax({
             url: `{% url 'website:add_friend' %}`,
             method: 'POST',
@@ -46,9 +51,10 @@ $(document).ready(function () {
             success: function(response) {
                 if (response.status === 'ok') {
                     article.remove();
-                    // Если приняли всех, меняем текст на "Полученных заявок нет"
                     if ($('#received-invitations article').length === 0) {
-                        $('#received-invitations').find('h3').last().text('Полученных заявок нет');
+                        $('#received-invitations').append(
+                            $('<p>', { class: 'invitation-empty', text: 'Новых заявок пока нет.' })
+                        );
                     }
                     $('aside').html(response.friends_html);
 
@@ -58,19 +64,31 @@ $(document).ready(function () {
                         text: "Заявка успешно принята",
                     });
                 } else {
+                    button.prop('disabled', false).removeAttr('aria-busy');
                     showToast({
                         icon: "error",
                         title: "Ошибка",
                         text: response.message || "Ошибка при принятии заявки на дружбу",
                     });
                 }
+            },
+            error: function () {
+                button.prop('disabled', false).removeAttr('aria-busy');
+                showToast({
+                    icon: "error",
+                    title: "Не удалось принять заявку",
+                    text: "Проверьте соединение и попробуйте ещё раз.",
+                });
             }
         });
     });
     // Обработка клика по кнопке "Удалить из друзей"
     $('.cancel-friend-request').on('click', function () {
+        const button = $(this);
         const article = $(this).closest('article');
         const userId = parseInt(article.data('id'));
+        if (button.prop('disabled')) return;
+        button.prop('disabled', true).attr('aria-busy', 'true');
         $.ajax({
             url: `/cancel-friend-request/${userId}/`,
             method: 'POST',
@@ -78,9 +96,10 @@ $(document).ready(function () {
             success: function(response) {
                 if (response.message === 'Заявка успешно отменена') {
                     article.remove();
-                    // Если удалили последнюю заявку, меняем текст на "Отправленных заявок нет"
                     if ($('#sended-invitations article').length === 0) {
-                        $('#sended-invitations').find('h3').first().text('Отправленных заявок нет');
+                        $('#sended-invitations').append(
+                            $('<p>', { class: 'invitation-empty', text: 'Здесь появятся заявки, которые вы отправите.' })
+                        );
                     }
                     showToast({
                         icon: "success",
@@ -88,12 +107,21 @@ $(document).ready(function () {
                         text: "Заявка успешно отменена",
                     });
                 } else {
+                    button.prop('disabled', false).removeAttr('aria-busy');
                     showToast({
                         icon: "error",
                         title: "Ошибка",
                         text: response.message || "Ошибка при отмене заявки на дружбу",
                     });
                 }
+            },
+            error: function () {
+                button.prop('disabled', false).removeAttr('aria-busy');
+                showToast({
+                    icon: "error",
+                    title: "Не удалось отменить заявку",
+                    text: "Проверьте соединение и попробуйте ещё раз.",
+                });
             }
         });
     });

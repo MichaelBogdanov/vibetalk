@@ -9,7 +9,7 @@
     {% else %}
     <li class="active">
     {% endif %}
-        <a href="/servers/">Все</a>
+        <a href="/servers/"{% if not selected_category %} aria-current="page"{% endif %}>Все</a>
     </li>
     {% for category in server_categories %}
     {% if category.id == selected_category %}
@@ -17,29 +17,49 @@
     {% else %}
     <li>
     {% endif %}
-        <a href="/servers/{{ category.id }}">{{ category.icon.as_html }}{{ category|truncatechars:17 }}</a>
+        <a href="/servers/{{ category.id }}"{% if category.id == selected_category %} aria-current="page"{% endif %}>{{ category.icon.as_html }}{{ category|truncatechars:17 }}</a>
     </li>
     {% endfor %}
 </ul>
 {% endblock %}
 
 {% block content %}
+<header class="page-heading">
+    <div class="page-heading-copy">
+        <p class="eyebrow">Сообщества</p>
+        <h1>Найдите своё место</h1>
+        <p class="page-description">Выберите сервер по интересам и присоединяйтесь к общению.</p>
+    </div>
+</header>
 <section class="servers">
     {% if servers %}
     {% for server in servers %}
-    <article>
-        <img src="/media/{{ server.photo }}" alt="">
-        <h3>{{ server.name }}</h3>
-        <p>{{ server.description }}</p>
-        <form action="{% url 'website:join_server' server.id %}" method="post">
+    <article class="server-card">
+        <img src="/media/{{ server.photo }}" alt="" loading="lazy" decoding="async">
+        <div class="server-card-copy">
+            <span class="server-category">{{ server.category }}</span>
+            <h2>{{ server.name }}</h2>
+            <p>{{ server.description|default:"Описание пока не добавили." }}</p>
+        </div>
+        <form action="{% url 'website:join_server' server.id %}" method="post" aria-label="Вступить на сервер «{{ server.name }}»">
             {% csrf_token %}
-            <button type="submit">Вступить на сервер {% fa5_icon 'plus' 'fa' %}</button>
+            <button type="submit"><span>Присоединиться</span>{% fa5_icon 'arrow-right' 'fa' %}</button>
         </form>
     </article>
 
     {% endfor %}
     {% else %}
-    <h2 style="grid-column: span 3;">Новые сервера отсутствуют</h2>
+    <div class="empty-state">
+        {% fa5_icon 'compass' 'fa' %}
+        <h2>Здесь пока нет серверов</h2>
+        {% if selected_category %}
+        <p>Попробуйте посмотреть все сообщества или создайте своё.</p>
+        <a class="button" href="{% url 'website:servers' %}">Показать все</a>
+        {% else %}
+        <p>Создайте своё сообщество и пригласите людей по интересам.</p>
+        <a class="button" href="{% url 'website:create_server' %}">Создать сервер</a>
+        {% endif %}
+    </div>
     {% endif %}
 </section>
 {% endblock %}

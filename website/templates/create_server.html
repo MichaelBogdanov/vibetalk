@@ -1,15 +1,17 @@
 {% extends 'base.html' %}
+{% load fontawesome_5 %}
 
 {% block content %}
-<h2>Создание сервера</h2>
-<!-- Форма для добавления нового сервера -->
+<header class="page-heading">
+    <div class="page-heading-copy">
+        <p class="eyebrow">Новое сообщество</p>
+        <h1>Создайте сервер</h1>
+        <p class="page-description">Задайте тему, добавьте описание и пригласите людей, с которыми хотите общаться.</p>
+    </div>
+</header>
 <form method="post" enctype="multipart/form-data" class="create_server">
     {% csrf_token %}
     {{ form.as_p }}
-    <input type="hidden" name="owner" value="{{ user.id }}" />
-    <button type="submit">Создать</button>
+    <button type="submit">{% fa5_icon 'plus' 'fa' %}<span>Создать сервер</span></button>
 </form>
-<script>
-document.querySelector('aside').style.display = "none";
-</script>
 {% endblock %}

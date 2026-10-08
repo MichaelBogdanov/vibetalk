@@ -7,16 +7,21 @@
 {% endblock %}
 
 {% block content %}
-<h2>Чат с {{ friend.first_name }} {{ friend.last_name }} <a href="talk/">{% fa5_icon 'microphone-alt' 'fas' %}</a></h2>
-<div id="messages-container"></div>
+<h1>
+    <span class="conversation-avatar" aria-hidden="true">{{ friend.first_name|default:friend.email|first|upper }}</span>
+    <span class="conversation-name">{{ friend.first_name }} {{ friend.last_name }}</span>
+    <a class="conversation-call" href="talk/" aria-label="Начать голосовой разговор" title="Позвонить">{% fa5_icon 'microphone-alt' 'fas' %}</a>
+</h1>
+<div id="messages-container" role="log" aria-label="Переписка с {{ friend.first_name }} {{ friend.last_name }}" aria-live="polite"></div>
 <p id="filename">&nbsp;</p>
-<form enctype="multipart/form-data" method="post" id="message-form">
+<p class="composer-hint">Enter — отправить · Shift + Enter — новая строка</p>
+<form enctype="multipart/form-data" method="post" id="message-form" aria-label="Новое сообщение">
     {% csrf_token %}
-    <textarea id="message" name="message" rows="3" maxlength="8192" placeholder="Введите ваше сообщение"></textarea>
-    <label for="file_upload" class="custom_file_upload">
+    <textarea id="message" name="message" rows="3" maxlength="8192" placeholder="Введите ваше сообщение" aria-label="Текст сообщения"></textarea>
+    <label for="file_upload" class="custom_file_upload" aria-label="Прикрепить файл" title="Прикрепить файл">
         {% fa5_icon 'plus' 'fa' %}
     </label>
-    <button id="send_message">Отправить <span>{% fa5_icon 'arrow-right' 'fa' %}</span></button>
+    <button id="send_message" type="submit" aria-label="Отправить сообщение" title="Отправить сообщение"><span>{% fa5_icon 'arrow-right' 'fa' %}</span></button>
     <input type="file" name="file_upload" value="" id="file_upload">
     <input type="hidden" name="recipient" value="{{ friend.id }}" />
 </form>
@@ -25,7 +30,7 @@ const textarea = document.getElementById('message');
 const sendButton = document.getElementById('send_message');
 
 textarea.addEventListener('keydown', (event) => {
-    if (event.key === 'Enter' && !event.shiftKey) {
+    if (event.key === 'Enter' && !event.shiftKey && !event.isComposing && !window.matchMedia('(pointer: coarse)').matches) {
         event.preventDefault();
         document.getElementById('message-form').requestSubmit();
     }

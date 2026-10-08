@@ -2,13 +2,15 @@
 {% load fontawesome_5 %}
 <head>
     <meta charset='UTF-8'>
-    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
-    <title>VibeTalk {{ title }}</title>
+    <meta name='viewport' content='width=device-width, initial-scale=1.0, viewport-fit=cover'>
+    <title>{% if title %}{{ title }} · {% endif %}VibeTalk</title>
+    <meta name="theme-color" content="#101116">
+    <meta name="description" content="VibeTalk — личные сообщения, тематические сообщества и голосовые комнаты.">
     {% fontawesome_5_static %}
-    <link rel="stylesheet" href="{% static 'styles/style.css' %}">
     <script src="{% static 'scripts/jquery.min.js' %}"></script>
     <link rel="stylesheet" href="{% static 'styles/fancybox.css' %}"/>
     <link href="{% static 'styles/sweetalert2-dark.css' %}" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'styles/style.css' %}">
     <script src="{% static 'scripts/sweetalert2.min.js' %}"></script>
     <link rel="icon" type="image/png" href="{% static 'favicon/favicon-96x96.png' %}" sizes="96x96" />
     <link rel="icon" type="image/svg+xml" href="{% static 'favicon/favicon.svg' %}" />

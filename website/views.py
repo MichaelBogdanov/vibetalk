@@ -606,8 +606,8 @@ def create_room(request):
     if server.owner_id != request.user.pk:
         return JsonResponse({'status': 'error', 'message': 'Недостаточно прав'}, status=403)
 
-    ServerRoom.objects.create(server=server)
-    return JsonResponse({'status': 'ok'})
+    room = ServerRoom.objects.create(server=server)
+    return JsonResponse({'status': 'ok', 'room_id': room.id})
 
 @login_required
 def room(request, room_id=None, user_id=None):

@@ -2,7 +2,8 @@
 {% load static %}
 
 {% block content %}
-<style>.my_servers, .aside { display: none !important; }</style>
+<link rel="stylesheet" href="{% static 'styles/zego.css' %}">
+<div id="root" role="region" aria-label="Групповой голосовой и видеозвонок"></div>
 <script src="https://unpkg.com/zego-superboard-web@2.15.3/index.js"></script>
 <script type="text/javascript" src="{% static 'scripts/zego-uikit-prebuilt.js' %}"></script>
 {{ call_config|json_script:"call-config" }}
