@@ -92,7 +92,7 @@ realFileInput.addEventListener('change', function () {
         return;
     }
 
-    fileInputLabel.innerHTML =
+    fileInputLabel.textContent =
         `Прикрепленный файл: ${file.name} (${formatFileSize(file.size)})`;
     fileInputLabel.style.display = 'block';
     fileInput.innerHTML = `{% fa5_icon 'ban' 'fa' %}`;
@@ -108,6 +108,13 @@ function formatFileSize(bytes) {
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+function escapeHtml(value) {
+    const entities = {
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    };
+    return String(value ?? '').replace(/[&<>"']/g, character => entities[character]);
 }
 
 // Генератор временных ID для оптимистичных сообщений
@@ -320,7 +327,7 @@ function createTemporaryMessageElement(msg) {
         </div>
         <div class="message-content">
             <span class="message-sender">Вы:</span>
-            ${msg.message || ""}
+            ${escapeHtml(msg.message || "")}
             <span class="message-status">⏳</span>
         </div>
     `;
@@ -330,7 +337,7 @@ function createTemporaryMessageElement(msg) {
 
 // Создание обычного сообщения
 function createMessageElement(msg) {
-    const senderLabel = msg.sender == `{{ request.user.id }}` ? "Вы" : `{{ friend.first_name }} {{ friend.last_name }}`;
+    const senderLabel = msg.sender == `{{ request.user.id }}` ? "Вы" : `{{ friend.first_name|escapejs }} {{ friend.last_name|escapejs }}`;
     const date = new Date(msg.timestamp);
     const readableDate = `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}:${String(date.getSeconds()).padStart(2, "0")} ` +
                        `${String(date.getDate()).padStart(2, "0")}.${String(date.getMonth()+1).padStart(2, "0")}.${date.getFullYear()}`;
@@ -345,19 +352,22 @@ function createMessageElement(msg) {
     let fileHtml = "";
     if (msg.file) {
         const fileInfo = msg.file;
+        const safeFilename = escapeHtml(fileInfo.filename);
+        const safeFileUrl = escapeHtml(fileInfo.url);
+        const safeDownloadUrl = escapeHtml(fileInfo.download_url || fileInfo.url + '?download=true');
         
         if (fileInfo && fileInfo.is_image) {
             fileHtml = `
                 <div class="message-file-container">
                     <div class="message-image-preview">
-                        <a href="${fileInfo.url}"
+                        <a href="${safeFileUrl}"
                            data-fancybox="msg-gallery"
-                           data-caption="${fileInfo.filename}">
-                            <img src="${fileInfo.url}" class="message-image-preview-img" loading="lazy">
+                           data-caption="${safeFilename}">
+                            <img src="${safeFileUrl}" class="message-image-preview-img" loading="lazy">
                         </a>
                         <div class="image-actions">
-                            <small>${fileInfo.filename}</small>
-                            <a href="${fileInfo.download_url || fileInfo.url + '?download=true'}" download>
+                            <small>${safeFilename}</small>
+                            <a href="${safeDownloadUrl}" download>
                                 {% fa5_icon 'download' 'fa' %}
                             </a>
                         </div>
@@ -366,7 +376,7 @@ function createMessageElement(msg) {
             `;
         } else if (fileInfo) {
             const size = formatFileSize(fileInfo.size);
-            const fileExt = fileInfo.filename.split(".").pop().toLowerCase();
+            const fileExt = String(fileInfo.filename).split(".").pop().toLowerCase();
             const icons = {
                 pdf: "📕", doc: "📝", docx: "📝", xls: "📊", xlsx: "📊",
                 zip: "📦", rar: "📦", "7z": "📦", mp3: "🎵", wav: "🎵",
@@ -378,8 +388,8 @@ function createMessageElement(msg) {
                 <div class="message-file-container">
                     <div class="message-file-download">
                         <span class="file-icon">${icon}</span>
-                        <a href="${fileInfo.download_url || fileInfo.url + '?download=true'}" download>
-                            ${fileInfo.filename}
+                        <a href="${safeDownloadUrl}" download>
+                            ${safeFilename}
                         </a>
                         <small>(${size})</small>
                     </div>
@@ -393,8 +403,8 @@ function createMessageElement(msg) {
             <small class="message-time">${readableDate}</small>
         </div>
         <div class="message-content">
-            <span class="message-sender">${senderLabel}:</span>
-            ${msg.message || ""}
+            <span class="message-sender">${escapeHtml(senderLabel)}:</span>
+            ${escapeHtml(msg.message || "")}
             ${fileHtml}
         </div>
     `;
