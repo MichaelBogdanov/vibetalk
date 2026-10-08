@@ -463,11 +463,19 @@ main
                 &.temporary
                     opacity: 0.8
                     &::after
-                        content: "⏳"
-                        position: absolute
-                        right: 10px
-                        top: 10px
-                        font-size: 12px
+                        content: none
+                .message-status
+                    display: block
+                    opacity: 0.7
+                    font-size: 0.75em
+                .message-retry
+                    margin-left: .5em
+                    padding: .2em .5em
+                    border: 1px solid currentColor
+                    border-radius: 5px
+                    background: transparent
+                    color: inherit
+                    cursor: pointer
         #message-form
             display: grid
             grid-template-columns: 1fr

@@ -13,6 +13,7 @@ from .models import *
 from .storage import INLINE_IMAGE_MIME_TYPES
 from .zego import generate_token04
 import mimetypes
+import uuid
 from django.template.loader import render_to_string
 
 
@@ -220,7 +221,8 @@ def messages_paginated(request, peer_id):
             'sender': m.sender_id,
             'message': m.message,
             'timestamp': m.timestamp.isoformat(),
-            'file': file_info  # Используем объект, а не строку
+            'file': file_info,  # Используем объект, а не строку
+            'client_message_id': str(m.client_message_id) if m.client_message_id else None,
         })
 
     return JsonResponse({
@@ -270,7 +272,8 @@ def get_messages(request, user_id):
             'sender': message.sender.id,
             'message': message.message,
             'timestamp': message.timestamp.isoformat(),
-            'file': file_info  # Используем объект, а не строку
+            'file': file_info,  # Используем объект, а не строку
+            'client_message_id': str(message.client_message_id) if message.client_message_id else None,
         })
 
     return JsonResponse({
@@ -294,19 +297,43 @@ def conversation(request, user_id):
         if len(message_text) > 8192:
             return JsonResponse({'status': 'error', 'message': 'Сообщение слишком длинное'}, status=400)
         uploaded_file = request.FILES.get('file_upload')
+        raw_client_message_id = request.POST.get('client_message_id')
+        if raw_client_message_id:
+            try:
+                client_message_id = uuid.UUID(raw_client_message_id)
+            except (ValueError, TypeError, AttributeError):
+                return JsonResponse({'status': 'error', 'message': 'Некорректный идентификатор сообщения'}, status=400)
+        else:
+            client_message_id = None
 
-        message = Message(
-            sender=request.user,
-            recipient=recipient,
-            message=message_text,
-            uploaded_file=uploaded_file,
-        )
-        
-        # Сохраняем оригинальное имя файла
-        if uploaded_file:
-            message.original_filename = uploaded_file.name
-        
-        message.save()
+        message_defaults = {
+            'recipient': recipient,
+            'message': message_text,
+            'uploaded_file': uploaded_file,
+            'original_filename': uploaded_file.name if uploaded_file else None,
+        }
+        if client_message_id:
+            message, created = Message.objects.get_or_create(
+                sender=request.user,
+                client_message_id=client_message_id,
+                defaults=message_defaults,
+            )
+            same_file = (
+                (not uploaded_file and not message.uploaded_file)
+                or (
+                    uploaded_file
+                    and message.uploaded_file
+                    and message.original_filename == uploaded_file.name
+                    and message.uploaded_file.size == uploaded_file.size
+                )
+            )
+            if message.recipient_id != recipient_id or message.message != message_text or not same_file:
+                return JsonResponse({'status': 'error', 'message': 'Идентификатор уже использован для другого сообщения'}, status=409)
+        else:
+            message = Message.objects.create(
+                sender=request.user,
+                **message_defaults,
+            )
         
         # Отправляем уведомление через WebSocket
         from asgiref.sync import async_to_sync
@@ -339,7 +366,8 @@ def conversation(request, user_id):
                     "recipient": message.recipient_id,
                     "message": message.message,
                     "timestamp": message.timestamp.isoformat(),
-                    "file": file_info
+                    "file": file_info,
+                    "client_message_id": str(client_message_id) if client_message_id else None,
                 }
             }
         )
@@ -349,7 +377,16 @@ def conversation(request, user_id):
             return JsonResponse({
                 'status': 'ok', 
                 'message_id': message.id,
-                'file_info': file_info
+                'file_info': file_info,
+                'message': {
+                    'id': message.id,
+                    'sender': message.sender_id,
+                    'recipient': message.recipient_id,
+                    'message': message.message,
+                    'timestamp': message.timestamp.isoformat(),
+                    'file': file_info,
+                    'client_message_id': str(client_message_id) if client_message_id else None,
+                },
             })
         
         return redirect('website:conversation', user_id=recipient_id)

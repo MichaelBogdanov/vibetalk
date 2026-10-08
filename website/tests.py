@@ -1,10 +1,14 @@
 import uuid
 from asgiref.sync import async_to_sync
+from channels.db import database_sync_to_async
+from channels.testing import WebsocketCommunicator
 from django.test import TestCase, TransactionTestCase
 from django.core.exceptions import ValidationError
+from django.urls import reverse
 from .consumers import PrivateChatConsumer
-from .models import CustomUser, Message
+from .models import CustomUser, Friendship, Message
 from .validators import validate_password, validate_email
+from core.asgi import application
 
 
 class EmailValidatorTests(TestCase):
@@ -138,3 +142,99 @@ class MessageIdempotencyTests(TransactionTestCase):
         self.assertIsNone(conflicting_message)
         self.assertFalse(created)
         self.assertEqual(Message.objects.count(), 1)
+
+
+class MessageHttpIdempotencyTests(TransactionTestCase):
+    def setUp(self):
+        self.sender = CustomUser.objects.create_user(
+            email='http-sender@example.com',
+            password='ValidP@ssw0rd',
+            first_name='Sender',
+            last_name='User',
+        )
+        self.recipient = CustomUser.objects.create_user(
+            email='http-recipient@example.com',
+            password='ValidP@ssw0rd',
+            first_name='Recipient',
+            last_name='User',
+        )
+        Friendship.objects.create(user_from=self.sender, user_to=self.recipient)
+        Friendship.objects.create(user_from=self.recipient, user_to=self.sender)
+        self.client.force_login(self.sender)
+        self.client_message_id = str(uuid.uuid4())
+
+    def test_repeating_ajax_send_returns_the_same_message(self):
+        url = reverse('website:conversation', args=[self.recipient.pk])
+        payload = {
+            'message': 'Повторный запрос',
+            'client_message_id': self.client_message_id,
+        }
+        headers = {'HTTP_X_REQUESTED_WITH': 'XMLHttpRequest'}
+
+        first_response = self.client.post(url, payload, **headers)
+        retry_response = self.client.post(url, payload, **headers)
+
+        self.assertEqual(first_response.status_code, 200)
+        self.assertEqual(retry_response.status_code, 200)
+        self.assertEqual(first_response.json()['message_id'], retry_response.json()['message_id'])
+        self.assertEqual(Message.objects.count(), 1)
+        self.assertEqual(retry_response.json()['message']['client_message_id'], self.client_message_id)
+
+        history = self.client.get(
+            reverse('website:messages_paginated', args=[self.recipient.pk])
+        ).json()
+        self.assertEqual(history['messages'][0]['client_message_id'], self.client_message_id)
+
+        conflict_response = self.client.post(
+            url,
+            {'message': 'Другой текст', 'client_message_id': self.client_message_id},
+            **headers,
+        )
+        self.assertEqual(conflict_response.status_code, 409)
+        self.assertEqual(Message.objects.count(), 1)
+
+
+class MessageWebSocketDeliveryTests(TransactionTestCase):
+    def setUp(self):
+        self.sender = CustomUser.objects.create_user(
+            email='ws-sender@example.com',
+            password='ValidP@ssw0rd',
+            first_name='Sender',
+            last_name='User',
+        )
+        self.recipient = CustomUser.objects.create_user(
+            email='ws-recipient@example.com',
+            password='ValidP@ssw0rd',
+            first_name='Recipient',
+            last_name='User',
+        )
+        Friendship.objects.create(user_from=self.sender, user_to=self.recipient)
+        Friendship.objects.create(user_from=self.recipient, user_to=self.sender)
+        self.client.force_login(self.sender)
+        self.session_cookie = self.client.cookies['sessionid'].value
+
+    async def test_send_broadcasts_persisted_message_and_acknowledges_request(self):
+        communicator = WebsocketCommunicator(
+            application,
+            f'/ws/dm/{self.recipient.pk}/',
+            headers=[(b'cookie', f'sessionid={self.session_cookie}'.encode())],
+        )
+        connected, _ = await communicator.connect()
+        self.assertTrue(connected)
+
+        client_message_id = str(uuid.uuid4())
+        await communicator.send_json_to({
+            'action': 'send',
+            'text': 'Сообщение через WebSocket',
+            'client_message_id': client_message_id,
+        })
+        first_event = await communicator.receive_json_from(timeout=2)
+        second_event = await communicator.receive_json_from(timeout=2)
+        events = {first_event['event']: first_event, second_event['event']: second_event}
+
+        self.assertIn('message_created', events)
+        self.assertIn('message_ack', events)
+        self.assertEqual(events['message_created']['message']['id'], events['message_ack']['message']['id'])
+        self.assertEqual(events['message_ack']['client_message_id'], client_message_id)
+        self.assertEqual(await database_sync_to_async(Message.objects.count)(), 1)
+        await communicator.disconnect()

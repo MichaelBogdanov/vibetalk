@@ -12,7 +12,7 @@
 <p id="filename">&nbsp;</p>
 <form enctype="multipart/form-data" method="post" id="message-form">
     {% csrf_token %}
-    <textarea id="message" name="message" rows="3" maxlength="8192" placeholder="Введите ваше сообщение" required></textarea>
+    <textarea id="message" name="message" rows="3" maxlength="8192" placeholder="Введите ваше сообщение"></textarea>
     <label for="file_upload" class="custom_file_upload">
         {% fa5_icon 'plus' 'fa' %}
     </label>
@@ -25,16 +25,9 @@ const textarea = document.getElementById('message');
 const sendButton = document.getElementById('send_message');
 
 textarea.addEventListener('keydown', (event) => {
-    // Проверяем, нажата ли клавиша Enter
-    if (event.key === 'Enter') {
-        // Если нажат Ctrl + Enter
-        if (event.ctrlKey) {
-            textarea.value += '\n'; // Можно так, но лучше обработать стандартное поведение
-        } else {
-            // Если только Enter, предотвращаем стандартный перенос строки
-            event.preventDefault(); // Предотвращаем стандартный перенос строки
-            sendButton.click(); // Имитируем клик по кнопке отправить
-        }
+    if (event.key === 'Enter' && !event.shiftKey) {
+        event.preventDefault();
+        document.getElementById('message-form').requestSubmit();
     }
 });
 </script>
@@ -57,6 +50,13 @@ let currentPeerId = `{{ friend.id }}`;
 let earliestMessageId = null;
 let loadingHistory = false;
 let socket = null;
+let reconnectTimer = null;
+let reconnectAttempts = 0;
+let pageIsLeaving = false;
+let currentFileClientMessageId = null;
+let isUploadingFile = false;
+const pendingMessages = new Map();
+const pendingStorageKey = `vibetalk:dm:${currentPeerId}:pending`;
 
 // ---------------------------------------------------
 // Логика кнопки выбора файла
@@ -74,7 +74,10 @@ fileInput.addEventListener('click', function(e) {
 
 realFileInput.addEventListener('change', function () {
     const file = this.files[0];
-    if (!file) return;
+    if (!file) {
+        currentFileClientMessageId = null;
+        return;
+    }
 
     if (file.size > MAX_FILE_SIZE) {
         showToast({
@@ -96,6 +99,7 @@ realFileInput.addEventListener('change', function () {
         `Прикрепленный файл: ${file.name} (${formatFileSize(file.size)})`;
     fileInputLabel.style.display = 'block';
     fileInput.innerHTML = `{% fa5_icon 'ban' 'fa' %}`;
+    currentFileClientMessageId = createClientMessageId();
 });
 
 
@@ -117,33 +121,82 @@ function escapeHtml(value) {
     return String(value ?? '').replace(/[&<>"']/g, character => entities[character]);
 }
 
-// Генератор временных ID для оптимистичных сообщений
-let tempIdCounter = -1;
-function generateTempId() {
-    tempIdCounter--;
-    return tempIdCounter;
+function createClientMessageId() {
+    if (window.crypto && typeof window.crypto.randomUUID === 'function') {
+        return window.crypto.randomUUID();
+    }
+    const bytes = new Uint8Array(16);
+    window.crypto.getRandomValues(bytes);
+    bytes[6] = (bytes[6] & 0x0f) | 0x40;
+    bytes[8] = (bytes[8] & 0x3f) | 0x80;
+    const hex = Array.from(bytes, byte => byte.toString(16).padStart(2, '0')).join('');
+    return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
+
+function persistPendingMessages() {
+    const entries = Array.from(pendingMessages.values()).map(entry => ({
+        client_message_id: entry.client_message_id,
+        text: entry.text,
+        timestamp: entry.timestamp,
+        attempts: entry.attempts,
+    }));
+    try {
+        if (entries.length) {
+            sessionStorage.setItem(pendingStorageKey, JSON.stringify(entries));
+        } else {
+            sessionStorage.removeItem(pendingStorageKey);
+        }
+        return true;
+    } catch (error) {
+        console.error('Не удалось сохранить очередь исходящих сообщений:', error);
+        return false;
+    }
+}
+
+function restorePendingMessages() {
+    try {
+        const entries = JSON.parse(sessionStorage.getItem(pendingStorageKey) || '[]');
+        if (!Array.isArray(entries)) return;
+
+        for (const saved of entries) {
+            if (!saved || typeof saved.client_message_id !== 'string' ||
+                typeof saved.text !== 'string' || !saved.text.trim()) continue;
+            const entry = {
+                client_message_id: saved.client_message_id,
+                text: saved.text,
+                timestamp: saved.timestamp || new Date().toISOString(),
+                attempts: 0,
+                timer: null,
+                needsAttention: false,
+                element: null,
+            };
+            entry.element = createTemporaryMessageElement(entry, 'Ожидает подтверждения');
+            entry.element.dataset.clientMessageId = entry.client_message_id;
+            pendingMessages.set(entry.client_message_id, entry);
+            messagesDiv.appendChild(entry.element);
+        }
+    } catch (error) {
+        console.error('Не удалось восстановить очередь исходящих сообщений:', error);
+    }
 }
 
 // ======================================================
 // 📌 1. Загрузка первых 100 сообщений
 // ======================================================
 async function loadInitialMessages() {
-    const res = await fetch(`/api/dm/${currentPeerId}/messages?limit=100`);
-    const data = await res.json();
-    messagesDiv.innerHTML = "";
+    try {
+        const res = await fetch(`/api/dm/${currentPeerId}/messages?limit=100`);
+        if (!res.ok) throw new Error(`Не удалось загрузить историю (${res.status})`);
+        const data = await res.json();
 
-    if (data.messages.length > 0) {
-        earliestMessageId = data.messages[0].id;
+        for (const msg of data.messages || []) upsertMessage(msg);
+        earliestMessageId = data.messages?.length ? data.messages[0].id : null;
+        updateEmptyState();
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    } catch (error) {
+        console.error('Ошибка загрузки истории сообщений:', error);
+        showToast({icon: 'error', title: 'Не удалось загрузить историю', text: 'Обновите страницу или попробуйте позже.'});
     }
-    else {
-        messagesDiv.innerHTML = "<h3>Начните общение 🗨️</h3>";
-    }
-
-    for (const msg of data.messages) {
-        await renderMessageDOM(msg, true);
-    }
-
-    messagesDiv.scrollTop = messagesDiv.scrollHeight;
 }
 
 // ======================================================
@@ -154,26 +207,29 @@ async function loadOlderMessages() {
 
     loadingHistory = true;
     const prevHeight = messagesDiv.scrollHeight;
+    const prevTop = messagesDiv.scrollTop;
 
-    const res = await fetch(
-        `/api/dm/${currentPeerId}/messages?limit=100&before=${earliestMessageId}`
-    );
-    const data = await res.json();
+    try {
+        const res = await fetch(
+            `/api/dm/${currentPeerId}/messages?limit=100&before=${earliestMessageId}`
+        );
+        if (!res.ok) throw new Error(`Не удалось загрузить сообщения (${res.status})`);
+        const data = await res.json();
 
-    if (data.messages.length === 0) {
-        earliestMessageId = null;
+        if (!data.messages?.length) {
+            earliestMessageId = null;
+            return;
+        }
+
+        for (const msg of data.messages) upsertMessage(msg, false);
+        earliestMessageId = data.messages[0].id;
+        messagesDiv.scrollTop = prevTop + (messagesDiv.scrollHeight - prevHeight);
+    } catch (error) {
+        console.error('Ошибка загрузки старых сообщений:', error);
+        showToast({icon: 'error', title: 'Не удалось загрузить сообщения', text: 'Попробуйте прокрутить вверх ещё раз.'});
+    } finally {
         loadingHistory = false;
-        return;
     }
-
-    earliestMessageId = data.messages[0].id;
-
-    for (const msg of data.messages) {
-        await renderMessageDOM(msg, false);
-    }
-
-    messagesDiv.scrollTop = messagesDiv.scrollHeight - prevHeight;
-    loadingHistory = false;
 }
 
 // Триггер на скролл вверх
@@ -187,45 +243,138 @@ messagesDiv.addEventListener("scroll", () => {
 // 📌 3. WebSocket подключение
 // ======================================================
 function initWebSocket() {
+    if (pageIsLeaving || (socket && [WebSocket.CONNECTING, WebSocket.OPEN].includes(socket.readyState))) return;
     const protocol = window.location.protocol === "https:" ? "wss" : "ws";
     const socketUrl = `${protocol}://${window.location.host}/ws/dm/${currentPeerId}/`;
+    const connection = new WebSocket(socketUrl);
+    socket = connection;
 
-    socket = new WebSocket(socketUrl);
+    connection.onopen = () => {
+        if (socket !== connection) return;
+        reconnectAttempts = 0;
+        console.log("WebSocket подключен");
+        for (const entry of pendingMessages.values()) sendPendingMessage(entry);
+    };
 
-    socket.onopen = () => console.log("WebSocket подключен");
+    connection.onmessage = (e) => {
+        let data;
+        try {
+            data = JSON.parse(e.data);
+        } catch (error) {
+            console.error('Некорректное событие WebSocket:', error);
+            return;
+        }
 
-    socket.onmessage = (e) => {
-        const data = JSON.parse(e.data);
-
-        if (data.event === "message_created") {
-            const msg = data.message;
-            
-            // Ищем временные сообщения
-            const tempMessages = Array.from(messagesDiv.querySelectorAll('[data-temp="true"]'));
-            
-            if (tempMessages.length > 0 && msg.sender == `{{ request.user.id }}`) {
-                // Это ответ на наше сообщение - заменяем последнее временное
-                const lastTempMessage = tempMessages[tempMessages.length - 1];
-                const realMessage = createMessageElement(msg);
-                lastTempMessage.replaceWith(realMessage);
-            } else {
-                // Это сообщение от собеседника
-                const newMessage = createMessageElement(msg);
-                messagesDiv.appendChild(newMessage);
-            }
-            
-            // Автоскролл
-            const atBottom = messagesDiv.scrollTop + messagesDiv.clientHeight >= messagesDiv.scrollHeight - 50;
-            if (atBottom) {
-                messagesDiv.scrollTop = messagesDiv.scrollHeight;
-            }
+        if (data.event === "message_created" || data.event === "message_ack") {
+            if (data.message) handleCreatedMessage(data.message);
+        } else if (data.event === "message_error") {
+            markPendingNeedsAttention(data.client_message_id, data.error || 'Сообщение отклонено сервером');
         }
     };
 
-    socket.onclose = () => {
-        console.log("WS отключен, попытка восстановить соединение...");
-        setTimeout(initWebSocket, 2000);
+    connection.onerror = () => {
+        console.warn('Ошибка WebSocket-соединения');
     };
+
+    connection.onclose = () => {
+        if (socket !== connection || pageIsLeaving) return;
+        socket = null;
+        scheduleReconnect();
+    };
+}
+
+function scheduleReconnect() {
+    if (pageIsLeaving || reconnectTimer) return;
+    reconnectAttempts += 1;
+    const delay = Math.min(1000 * (2 ** Math.min(reconnectAttempts - 1, 5)), 30000);
+    reconnectTimer = setTimeout(() => {
+        reconnectTimer = null;
+        initWebSocket();
+    }, delay);
+}
+
+function handleCreatedMessage(message) {
+    const clientMessageId = message.client_message_id;
+    if (clientMessageId && pendingMessages.has(clientMessageId)) {
+        const entry = pendingMessages.get(clientMessageId);
+        if (entry.timer) clearTimeout(entry.timer);
+        pendingMessages.delete(clientMessageId);
+        persistPendingMessages();
+        upsertMessage(message, true, entry.element);
+    } else {
+        upsertMessage(message);
+    }
+}
+
+function sendPendingMessage(entry, force = false) {
+    if (!pendingMessages.has(entry.client_message_id)) return;
+    if (entry.needsAttention && !force) return;
+    if (!socket || socket.readyState !== WebSocket.OPEN) {
+        setPendingStatus(entry, 'Ожидает подключения');
+        return;
+    }
+
+    if (entry.timer) clearTimeout(entry.timer);
+    if (force) {
+        entry.attempts = 0;
+        entry.needsAttention = false;
+    }
+    if (entry.attempts >= 5) {
+        markPendingNeedsAttention(entry.client_message_id, 'Нет подтверждения от сервера');
+        return;
+    }
+
+    try {
+        socket.send(JSON.stringify({
+            action: 'send',
+            text: entry.text,
+            client_message_id: entry.client_message_id,
+        }));
+    } catch (error) {
+        console.error('Ошибка отправки сообщения:', error);
+        setPendingStatus(entry, 'Ожидает подключения');
+        return;
+    }
+
+    entry.attempts += 1;
+    setPendingStatus(entry, entry.attempts === 1 ? 'Отправляется' : `Повторная отправка (${entry.attempts})`);
+    persistPendingMessages();
+    const retryDelay = Math.min(3000 * (2 ** (entry.attempts - 1)), 30000);
+    entry.timer = setTimeout(() => {
+        if (!pendingMessages.has(entry.client_message_id)) return;
+        if (entry.attempts >= 5) {
+            markPendingNeedsAttention(entry.client_message_id, 'Нет подтверждения от сервера');
+        } else if (socket && socket.readyState === WebSocket.OPEN) {
+            sendPendingMessage(entry);
+        } else {
+            setPendingStatus(entry, 'Ожидает подключения');
+        }
+    }, retryDelay);
+}
+
+function markPendingNeedsAttention(clientMessageId, reason) {
+    const entry = pendingMessages.get(clientMessageId);
+    if (!entry) return;
+    if (entry.timer) clearTimeout(entry.timer);
+    entry.timer = null;
+    entry.needsAttention = true;
+    setPendingStatus(entry, reason, true);
+}
+
+function setPendingStatus(entry, text, showRetry = false) {
+    if (!entry.element?.isConnected) return;
+    const status = entry.element.querySelector('.message-status');
+    if (status) status.textContent = text;
+    let retryButton = entry.element.querySelector('.message-retry');
+    if (showRetry && !retryButton) {
+        retryButton = document.createElement('button');
+        retryButton.type = 'button';
+        retryButton.className = 'message-retry';
+        retryButton.textContent = 'Повторить';
+        entry.element.querySelector('.message-content').appendChild(retryButton);
+    } else if (!showRetry && retryButton) {
+        retryButton.remove();
+    }
 }
 
 // ======================================================
@@ -233,6 +382,7 @@ function initWebSocket() {
 // ======================================================
 document.getElementById('message-form').addEventListener('submit', async function(e) {
     e.preventDefault();
+    if (isUploadingFile) return;
     
     const messageInput = document.getElementById('message');
     const text = messageInput.value.trim();
@@ -240,86 +390,85 @@ document.getElementById('message-form').addEventListener('submit', async functio
     const file = fileInput.files[0];
     
     if (file) {
-        // Если есть файл - отправляем через HTTP
         await uploadFileAndSendMessage(text, file);
     } else if (text) {
-        // Если только текст - оптимистичное обновление + WebSocket
-        sendTextMessageWithOptimisticUpdate(text);
+        const clientMessageId = createClientMessageId();
+        const entry = {
+            client_message_id: clientMessageId,
+            text,
+            timestamp: new Date().toISOString(),
+            attempts: 0,
+            timer: null,
+            needsAttention: false,
+            element: null,
+        };
+        entry.element = createTemporaryMessageElement(entry, 'Ожидает отправки');
+        entry.element.dataset.clientMessageId = clientMessageId;
+        pendingMessages.set(clientMessageId, entry);
+        if (!persistPendingMessages()) {
+            pendingMessages.delete(clientMessageId);
+            showToast({icon: 'error', title: 'Не удалось поставить сообщение в очередь', text: 'Текст остался в поле ввода.'});
+            return;
+        }
+        messagesDiv.appendChild(entry.element);
+        updateEmptyState();
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        sendPendingMessage(entry);
+        messageInput.value = '';
     }
-    
-    // Очищаем поля
-    messageInput.value = '';
-    fileInput.value = '';
-    fileInputLabel.innerHTML = '&nbsp;';
-    fileInputLabel.style.display = 'none';
-    document.querySelector('.custom_file_upload').innerHTML = `{% fa5_icon 'plus' 'fa' %}`;
 });
 
 // Отправка файла через HTTP
 async function uploadFileAndSendMessage(text, file) {
+    if (isUploadingFile) return;
+    isUploadingFile = true;
+    const submitButton = document.getElementById('send_message');
+    submitButton.disabled = true;
+    currentFileClientMessageId ||= createClientMessageId();
     const formData = new FormData();
     formData.append('recipient', currentPeerId);
     formData.append('message', text);
     formData.append('file_upload', file);
+    formData.append('client_message_id', currentFileClientMessageId);
     formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
     
     try {
         const response = await fetch(window.location.href, {
             method: 'POST',
-            body: formData
+            body: formData,
+            headers: {'X-Requested-With': 'XMLHttpRequest'},
         });
         
-        if (response.ok) {
-            console.log('Сообщение с файлом отправлено');
-        }
+        if (!response.ok) throw new Error(`Сервер вернул ${response.status}`);
+        const data = await response.json();
+        if (data.status !== 'ok' || !data.message) throw new Error(data.message || 'Сервер не подтвердил отправку');
+        handleCreatedMessage(data.message);
+        document.getElementById('message').value = '';
+        document.getElementById('file_upload').value = '';
+        fileInputLabel.textContent = '';
+        fileInputLabel.style.display = 'none';
+        document.querySelector('.custom_file_upload').innerHTML = `{% fa5_icon 'plus' 'fa' %}`;
+        currentFileClientMessageId = null;
     } catch (error) {
         console.error('Ошибка отправки файла:', error);
+        showToast({icon: 'error', title: 'Сообщение не отправлено', text: 'Проверьте соединение и повторите попытку.'});
+    } finally {
+        isUploadingFile = false;
+        submitButton.disabled = false;
     }
-}
-
-// Отправка текста через WebSocket с оптимистичным обновлением
-function sendTextMessageWithOptimisticUpdate(text) {
-    if (!socket || socket.readyState !== WebSocket.OPEN) {
-        console.error('WebSocket не подключен');
-        return;
-    }
-    
-    // Создаем временное сообщение
-    const tempId = generateTempId();
-    const tempMessage = {
-        id: tempId,
-        sender: `{{ request.user.id }}`,
-        message: text,
-        timestamp: new Date().toISOString(),
-        file: null
-    };
-    
-    // Сразу показываем временное сообщение
-    const tempElement = createTemporaryMessageElement(tempMessage);
-    messagesDiv.appendChild(tempElement);
-    messagesDiv.scrollTop = messagesDiv.scrollHeight;
-    
-    // Отправляем через WebSocket
-    const payload = {
-        action: "send",
-        text: text
-    };
-    
-    socket.send(JSON.stringify(payload));
 }
 
 // ======================================================
 // 📌 5. Создание элементов сообщений
 // ======================================================
 // Создание временного сообщения
-function createTemporaryMessageElement(msg) {
-    const date = new Date(msg.timestamp);
+function createTemporaryMessageElement(entry, statusText) {
+    const date = new Date(entry.timestamp);
     const readableDate = `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}:${String(date.getSeconds()).padStart(2, "0")} ` +
                        `${String(date.getDate()).padStart(2, "0")}.${String(date.getMonth()+1).padStart(2, "0")}.${date.getFullYear()}`;
 
     const div = document.createElement("div");
     div.className = "message temporary";
-    div.dataset.id = msg.id;
     div.dataset.temp = "true";
     div.innerHTML = `
         <div class="message-header">
@@ -327,8 +476,8 @@ function createTemporaryMessageElement(msg) {
         </div>
         <div class="message-content">
             <span class="message-sender">Вы:</span>
-            ${escapeHtml(msg.message || "")}
-            <span class="message-status">⏳</span>
+            ${escapeHtml(entry.text || "")}
+            <span class="message-status">${escapeHtml(statusText)}</span>
         </div>
     `;
     
@@ -417,21 +566,84 @@ function createMessageElement(msg) {
     return div;
 }
 
+function updateEmptyState() {
+    const hasMessages = messagesDiv.querySelector('.message');
+    const emptyState = messagesDiv.querySelector('[data-empty-state="true"]');
+    if (hasMessages && emptyState) emptyState.remove();
+    if (!hasMessages && !emptyState) {
+        const heading = document.createElement('h3');
+        heading.dataset.emptyState = 'true';
+        heading.textContent = 'Начните общение 🗨️';
+        messagesDiv.appendChild(heading);
+    }
+}
+
+function upsertMessage(msg, appendToBottom = true, temporaryElement = null) {
+    if (!msg || msg.id == null) return;
+    const messageId = String(msg.id);
+    const existing = Array.from(messagesDiv.querySelectorAll('.message[data-id]'))
+        .find(element => element.dataset.id === messageId);
+
+    const clientMessageId = msg.client_message_id;
+    const pending = clientMessageId ? pendingMessages.get(clientMessageId) : null;
+    if (pending) {
+        if (pending.timer) clearTimeout(pending.timer);
+        pendingMessages.delete(clientMessageId);
+        persistPendingMessages();
+        if (pending.element !== temporaryElement && pending.element?.isConnected) pending.element.remove();
+    }
+
+    if (existing) {
+        if (temporaryElement?.isConnected) temporaryElement.remove();
+        updateEmptyState();
+        return existing;
+    }
+
+    const wasAtBottom = messagesDiv.scrollTop + messagesDiv.clientHeight >= messagesDiv.scrollHeight - 50;
+    const element = createMessageElement(msg);
+    element.dataset.id = messageId;
+    const confirmedMessages = Array.from(messagesDiv.querySelectorAll('.message:not([data-temp="true"])'));
+    const nextMessage = confirmedMessages.find(item => Number(item.dataset.id) > Number(msg.id));
+
+    if (temporaryElement?.isConnected) {
+        temporaryElement.replaceWith(element);
+    } else if (nextMessage) {
+        messagesDiv.insertBefore(element, nextMessage);
+    } else {
+        messagesDiv.appendChild(element);
+    }
+
+    updateEmptyState();
+    if (appendToBottom && wasAtBottom) messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    return element;
+}
+
 // Старая функция renderMessageDOM (для загрузки истории)
 async function renderMessageDOM(msg, appendToBottom = true) {
-    const div = createMessageElement(msg);
-    
-    if (appendToBottom) {
-        messagesDiv.appendChild(div);
-    } else {
-        messagesDiv.insertBefore(div, messagesDiv.firstChild);
-    }
+    upsertMessage(msg, appendToBottom);
 }
 
 // ======================================================
 // 📌 6. Инициализация
 // ======================================================
+restorePendingMessages();
 loadInitialMessages();
 initWebSocket();
+
+messagesDiv.addEventListener('click', event => {
+    const button = event.target.closest('.message-retry');
+    if (!button) return;
+    const element = button.closest('[data-client-message-id]');
+    const entry = element && pendingMessages.get(element.dataset.clientMessageId);
+    if (entry) sendPendingMessage(entry, true);
+});
+
+window.addEventListener('pagehide', () => {
+    pageIsLeaving = true;
+    if (reconnectTimer) clearTimeout(reconnectTimer);
+    for (const entry of pendingMessages.values()) {
+        if (entry.timer) clearTimeout(entry.timer);
+    }
+});
 </script>
 {% endblock %}
