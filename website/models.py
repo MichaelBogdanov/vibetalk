@@ -170,6 +170,7 @@ class Message(models.Model):
         blank=True
     )
     original_filename = models.CharField(max_length=255, blank=True, null=True)  # Новое поле
+    client_message_id = models.UUIDField(null=True, blank=True, editable=False)
 
     def save(self, *args, **kwargs):
         # Сохраняем оригинальное имя файла при сохранении
@@ -186,6 +187,13 @@ class Message(models.Model):
         indexes = [
             models.Index(fields=['sender', 'recipient', 'id']),
             models.Index(fields=['recipient', 'sender', 'id']),
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=['sender', 'client_message_id'],
+                condition=models.Q(client_message_id__isnull=False),
+                name='uniq_message_sender_client_id',
+            ),
         ]
 
 

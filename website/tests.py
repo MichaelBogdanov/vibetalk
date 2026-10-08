@@ -1,5 +1,9 @@
-from django.test import TestCase
+import uuid
+from asgiref.sync import async_to_sync
+from django.test import TestCase, TransactionTestCase
 from django.core.exceptions import ValidationError
+from .consumers import PrivateChatConsumer
+from .models import CustomUser, Message
 from .validators import validate_password, validate_email
 
 
@@ -74,3 +78,63 @@ class PasswordValidatorTests(TestCase):
         # Проверяем, что пароль состоящий только из пробелов вызывает ошибку
         with self.assertRaises(ValidationError):
             validate_password("     ")
+
+
+class MessageIdempotencyTests(TransactionTestCase):
+    reset_sequences = True
+
+    def setUp(self):
+        self.sender = CustomUser.objects.create_user(
+            email='sender@example.com',
+            password='ValidP@ssw0rd',
+            first_name='Sender',
+            last_name='User',
+        )
+        self.recipient = CustomUser.objects.create_user(
+            email='recipient@example.com',
+            password='ValidP@ssw0rd',
+            first_name='Recipient',
+            last_name='User',
+        )
+        self.consumer = PrivateChatConsumer()
+
+    def test_retry_with_same_client_id_returns_saved_message(self):
+        client_message_id = uuid.uuid4()
+
+        first_message, first_created = async_to_sync(self.consumer._create_message)(
+            self.sender.pk,
+            self.recipient.pk,
+            'Привет',
+            client_message_id,
+        )
+        retry_message, retry_created = async_to_sync(self.consumer._create_message)(
+            self.sender.pk,
+            self.recipient.pk,
+            'Привет',
+            client_message_id,
+        )
+
+        self.assertTrue(first_created)
+        self.assertFalse(retry_created)
+        self.assertEqual(retry_message.pk, first_message.pk)
+        self.assertEqual(Message.objects.count(), 1)
+
+    def test_reusing_client_id_for_different_message_is_rejected(self):
+        client_message_id = uuid.uuid4()
+        async_to_sync(self.consumer._create_message)(
+            self.sender.pk,
+            self.recipient.pk,
+            'Первый текст',
+            client_message_id,
+        )
+
+        conflicting_message, created = async_to_sync(self.consumer._create_message)(
+            self.sender.pk,
+            self.recipient.pk,
+            'Другой текст',
+            client_message_id,
+        )
+
+        self.assertIsNone(conflicting_message)
+        self.assertFalse(created)
+        self.assertEqual(Message.objects.count(), 1)
