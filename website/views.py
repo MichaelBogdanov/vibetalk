@@ -200,9 +200,17 @@ def messages_paginated(request, peer_id):
 
 @login_required
 def get_messages(request, user_id):
+    try:
+        peer = CustomUser.objects.get(pk=user_id)
+    except CustomUser.DoesNotExist:
+        return JsonResponse({'error': 'Пользователь не найден'}, status=404)
+
+    if not _are_mutual_friends(request.user, peer):
+        return JsonResponse({'error': 'Forbidden'}, status=403)
+
     messages = Message.objects.filter(
-        (Q(sender=request.user) & Q(recipient=user_id)) |
-        (Q(sender=user_id) & Q(recipient=request.user))
+        (Q(sender=request.user) & Q(recipient=peer)) |
+        (Q(sender=peer) & Q(recipient=request.user))
     ).order_by('timestamp')
 
     messages_data = []
@@ -230,12 +238,19 @@ def get_messages(request, user_id):
 
 @login_required
 def conversation(request, user_id):
+    try:
+        recipient = CustomUser.objects.get(pk=user_id)
+    except CustomUser.DoesNotExist:
+        raise Http404("Пользователь не найден")
+
+    if not _are_mutual_friends(request.user, recipient):
+        return HttpResponseForbidden()
+
     if request.method == 'POST':
-        recipient_id = request.POST.get('recipient')
+        recipient_id = recipient.pk
         message_text = request.POST.get('message')
         uploaded_file = request.FILES.get('file_upload')
-        
-        recipient = CustomUser.objects.get(id=recipient_id)
+
         message = Message(
             sender=request.user,
             recipient=recipient,
@@ -296,9 +311,7 @@ def conversation(request, user_id):
         return redirect('website:conversation', user_id=recipient_id)
     
     # GET запрос
-    friend = CustomUser.objects.get(id=user_id)
-    if not Friendship.objects.filter(user_from=request.user, user_to=friend).exists():
-        return HttpResponseForbidden()
+    friend = recipient
     
     data = {
         'my_servers': [elem.server for elem in ServerMember.objects.filter(member=request.user)],
@@ -315,6 +328,13 @@ def _dm_group_name(user_a_id, user_b_id):
     low, high = (a, b) if a <= b else (b, a)
     return f"dm_{low}_{high}"
 
+
+def _are_mutual_friends(user_a, user_b):
+    return (
+        Friendship.objects.filter(user_from=user_a, user_to=user_b).exists()
+        and Friendship.objects.filter(user_from=user_b, user_to=user_a).exists()
+    )
+
 @login_required
 def get_message_file(request, message_id):
     try:
@@ -325,6 +345,9 @@ def get_message_file(request, message_id):
 
     # Проверяем, что пользователь — участник диалога
     if request.user != msg.sender and request.user != msg.recipient:
+        raise Http404("Файл не найден")
+
+    if not _are_mutual_friends(msg.sender, msg.recipient):
         raise Http404("Файл не найден")
 
     # Проверяем, что есть файл
@@ -389,6 +412,9 @@ def get_file_info(request, message_id):
 
     # Проверяем, что пользователь — участник диалога
     if request.user != msg.sender and request.user != msg.recipient:
+        return JsonResponse({'error': 'Доступ запрещен'}, status=403)
+
+    if not _are_mutual_friends(msg.sender, msg.recipient):
         return JsonResponse({'error': 'Доступ запрещен'}, status=403)
 
     if not msg.uploaded_file:
