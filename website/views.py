@@ -31,6 +31,19 @@ def _get_my_servers(user):
     return [membership.server for membership in memberships]
 
 
+def _get_message_page_params(request):
+    try:
+        limit = int(request.GET.get('limit', 100))
+        before_value = request.GET.get('before')
+        before = int(before_value) if before_value is not None else None
+    except (TypeError, ValueError):
+        return None
+
+    if limit < 1 or (before is not None and before < 1):
+        return None
+    return min(limit, 100), before
+
+
 def register(request):
     data = {
         'title': 'Регистрация'
@@ -174,15 +187,17 @@ def messages_paginated(request, peer_id):
             Friendship.objects.filter(user_from=peer, user_to=user).exists()):
         return JsonResponse({'error': 'Forbidden'}, status=403)
 
-    limit = min(int(request.GET.get('limit', 100)), 500)
-    before = request.GET.get('before', None)
+    page_params = _get_message_page_params(request)
+    if page_params is None:
+        return JsonResponse({'error': 'Некорректные параметры страницы'}, status=400)
+    limit, before = page_params
 
     qs = Message.objects.filter(
         (Q(sender=user) & Q(recipient=peer)) | (Q(sender=peer) & Q(recipient=user))
     )
     
-    if before:
-        qs = qs.filter(id__lt=int(before))
+    if before is not None:
+        qs = qs.filter(id__lt=before)
 
     messages = list(qs.order_by('-id')[:limit])
     messages.reverse()
@@ -208,7 +223,10 @@ def messages_paginated(request, peer_id):
             'file': file_info  # Используем объект, а не строку
         })
 
-    return JsonResponse({'messages': data})
+    return JsonResponse({
+        'messages': data,
+        'next_before': data[0]['id'] if len(data) == limit else None,
+    })
 
 @login_required
 def get_messages(request, user_id):
@@ -220,10 +238,19 @@ def get_messages(request, user_id):
     if not _are_mutual_friends(request.user, peer):
         return JsonResponse({'error': 'Forbidden'}, status=403)
 
-    messages = Message.objects.filter(
+    page_params = _get_message_page_params(request)
+    if page_params is None:
+        return JsonResponse({'error': 'Некорректные параметры страницы'}, status=400)
+    limit, before = page_params
+
+    messages_query = Message.objects.filter(
         (Q(sender=request.user) & Q(recipient=peer)) |
         (Q(sender=peer) & Q(recipient=request.user))
-    ).order_by('timestamp')
+    )
+    if before is not None:
+        messages_query = messages_query.filter(id__lt=before)
+    messages = list(messages_query.order_by('-id')[:limit])
+    messages.reverse()
 
     messages_data = []
     for message in messages:
@@ -246,7 +273,10 @@ def get_messages(request, user_id):
             'file': file_info  # Используем объект, а не строку
         })
 
-    return JsonResponse({'messages': messages_data})
+    return JsonResponse({
+        'messages': messages_data,
+        'next_before': messages_data[0]['id'] if len(messages_data) == limit else None,
+    })
 
 @login_required
 def conversation(request, user_id):
