@@ -1,9 +1,11 @@
 import uuid
+from unittest.mock import patch
 from asgiref.sync import async_to_sync
 from channels.db import database_sync_to_async
 from channels.testing import WebsocketCommunicator
 from django.test import TestCase, TransactionTestCase
 from django.core.exceptions import ValidationError
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 from .consumers import PrivateChatConsumer
 from .models import CustomUser, Friendship, Message
@@ -192,6 +194,33 @@ class MessageHttpIdempotencyTests(TransactionTestCase):
         )
         self.assertEqual(conflict_response.status_code, 409)
         self.assertEqual(Message.objects.count(), 1)
+
+    def test_repeating_file_upload_with_same_id_stores_one_message(self):
+        storage = Message._meta.get_field('uploaded_file').storage
+        url = reverse('website:conversation', args=[self.recipient.pk])
+        headers = {'HTTP_X_REQUESTED_WITH': 'XMLHttpRequest'}
+
+        with (
+            patch.object(storage, 'exists', return_value=False),
+            patch.object(storage, '_save', return_value='chat_files/note.txt') as save_file,
+            patch.object(storage, 'size', return_value=9),
+        ):
+            responses = []
+            for _ in range(2):
+                responses.append(self.client.post(
+                    url,
+                    {
+                        'message': 'Файл в личном чате',
+                        'client_message_id': self.client_message_id,
+                        'file_upload': SimpleUploadedFile('note.txt', b'file body'),
+                    },
+                    **headers,
+                ))
+
+            self.assertEqual([response.status_code for response in responses], [200, 200])
+            self.assertEqual(responses[0].json()['message_id'], responses[1].json()['message_id'])
+            self.assertEqual(Message.objects.count(), 1)
+            self.assertEqual(save_file.call_count, 1)
 
 
 class MessageWebSocketDeliveryTests(TransactionTestCase):
