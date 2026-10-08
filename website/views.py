@@ -10,6 +10,7 @@ from pathlib import Path
 from django.urls import reverse
 from .forms import *
 from .models import *
+from .zego import generate_token04
 import mimetypes
 from django.template.loader import render_to_string
 
@@ -521,24 +522,52 @@ def create_room(request):
 
 @login_required
 def room(request, room_id=None, user_id=None):
-    data = {
-        'AppID': ZegoCloudConfiguration.objects.first().app_id,
-        'ServerSecret': ZegoCloudConfiguration.objects.first().server_secret
-    }
+    configuration = ZegoCloudConfiguration.objects.first()
+    if not configuration:
+        return HttpResponse("Звонки не настроены", status=503)
+
     if room_id:
-        # Если пользователь участник сервера
-        server = ServerRoom.objects.get(id=room_id).server
+        try:
+            call_room = ServerRoom.objects.select_related('server').get(id=room_id)
+        except ServerRoom.DoesNotExist:
+            raise Http404("Комната не найдена")
+        server = call_room.server
         if not ServerMember.objects.filter(server=server, member=request.user).exists():
             return HttpResponse('Вы не можете присоединиться к данному разговору')
-        data['room'] = ServerRoom.objects.get(id=room_id).id
-        data['logout_redirect'] = f"/server/{server.id}"
-        data['title'] = server.name
+        call_room_id = str(call_room.id)
+        logout_redirect = f"/server/{server.id}"
+        title = server.name
     else:
-        # Если пользователи друзья
-        if not (Friendship.objects.filter(user_from=request.user, user_to=CustomUser.objects.get(id=user_id)).exists() and Friendship.objects.filter(user_from=CustomUser.objects.get(id=user_id), user_to=request.user).exists()):
+        try:
+            peer = CustomUser.objects.get(id=user_id)
+        except CustomUser.DoesNotExist:
+            raise Http404("Пользователь не найден")
+        if not _are_mutual_friends(request.user, peer):
             return HttpResponse('Вы не можете присоединиться к данному разговору')
-        data['room'] = "_".join(sorted([request.user.email, CustomUser.objects.get(id=user_id).email]))
-        data['logout_redirect'] = f'/conversation/{user_id}'
-        data['title'] = f"Разговор: {CustomUser.objects.get(id=user_id)}"
-    return render(request, 'room.html', data)
+        call_room_id = _dm_group_name(request.user.id, peer.id)
+        logout_redirect = f'/conversation/{peer.id}/talk/'
+        title = f"Разговор: {peer}"
+
+    try:
+        token = generate_token04(
+            configuration.app_id,
+            request.user.pk,
+            configuration.server_secret,
+            call_room_id,
+        )
+    except ValueError:
+        return HttpResponse("Конфигурация звонков некорректна", status=503)
+
+    call_config = {
+        'app_id': configuration.app_id,
+        'token': token,
+        'room_id': call_room_id,
+        'user_id': str(request.user.pk),
+        'user_name': str(request.user),
+        'logout_redirect': logout_redirect,
+    }
+    return render(request, 'room.html', {
+        'title': title,
+        'call_config': call_config,
+    })
 

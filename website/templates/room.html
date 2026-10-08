@@ -5,14 +5,15 @@
 <style>.my_servers, .aside { display: none !important; }</style>
 <script src="https://unpkg.com/zego-superboard-web@2.15.3/index.js"></script>
 <script type="text/javascript" src="{% static 'scripts/zego-uikit-prebuilt.js' %}"></script>
+{{ call_config|json_script:"call-config" }}
 <script type="text/javascript">
 window.onload = function () {
-    const roomID = '{{ room }}';
-    const userID = '{{ user.id }}';
-    const userName = '{{ user }}';
-    const appID = {{ AppID }};
-    const serverSecret = '{{ ServerSecret }}';
-    const kitToken = ZegoUIKitPrebuilt.generateKitTokenForTest(appID, serverSecret, roomID, userID, userName);
+    const callConfig = JSON.parse(document.getElementById('call-config').textContent);
+    const roomID = callConfig.room_id;
+    const userID = callConfig.user_id;
+    const userName = callConfig.user_name;
+    const appID = Number(callConfig.app_id);
+    const kitToken = ZegoUIKitPrebuilt.generateKitTokenForProduction(appID, callConfig.token, roomID, userID, userName);
 
     const zp = ZegoUIKitPrebuilt.create(kitToken);
 
@@ -95,7 +96,7 @@ window.onload = function () {
         showLeaveRoomConfirmDialog: false,
 
         onLeaveRoom: () => {
-            document.location.href = '{{ logout_redirect }}';
+            document.location.href = callConfig.logout_redirect;
         },
         
     });
