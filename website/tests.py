@@ -223,18 +223,25 @@ class MessageWebSocketDeliveryTests(TransactionTestCase):
         self.assertTrue(connected)
 
         client_message_id = str(uuid.uuid4())
-        await communicator.send_json_to({
-            'action': 'send',
-            'text': 'Сообщение через WebSocket',
-            'client_message_id': client_message_id,
-        })
-        first_event = await communicator.receive_json_from(timeout=2)
-        second_event = await communicator.receive_json_from(timeout=2)
-        events = {first_event['event']: first_event, second_event['event']: second_event}
+        message_ids = set()
+        for _ in range(2):
+            await communicator.send_json_to({
+                'action': 'send',
+                'text': 'Сообщение через WebSocket',
+                'client_message_id': client_message_id,
+            })
+            received_events = [
+                await communicator.receive_json_from(timeout=2),
+                await communicator.receive_json_from(timeout=2),
+            ]
+            events = {event['event']: event for event in received_events}
 
-        self.assertIn('message_created', events)
-        self.assertIn('message_ack', events)
-        self.assertEqual(events['message_created']['message']['id'], events['message_ack']['message']['id'])
-        self.assertEqual(events['message_ack']['client_message_id'], client_message_id)
+            self.assertIn('message_created', events)
+            self.assertIn('message_ack', events)
+            self.assertEqual(events['message_created']['message']['id'], events['message_ack']['message']['id'])
+            self.assertEqual(events['message_ack']['client_message_id'], client_message_id)
+            message_ids.add(events['message_ack']['message']['id'])
+
+        self.assertEqual(len(message_ids), 1)
         self.assertEqual(await database_sync_to_async(Message.objects.count)(), 1)
         await communicator.disconnect()

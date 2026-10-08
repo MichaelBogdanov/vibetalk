@@ -47,6 +47,7 @@ let fileInputLabel = document.querySelector('#filename');
 
 let messagesDiv = document.getElementById('messages-container');
 let currentPeerId = `{{ friend.id }}`;
+let currentUserId = `{{ request.user.id }}`;
 let earliestMessageId = null;
 let loadingHistory = false;
 let socket = null;
@@ -56,7 +57,7 @@ let pageIsLeaving = false;
 let currentFileClientMessageId = null;
 let isUploadingFile = false;
 const pendingMessages = new Map();
-const pendingStorageKey = `vibetalk:dm:${currentPeerId}:pending`;
+const pendingStorageKey = `vibetalk:dm:${currentUserId}:${currentPeerId}:pending`;
 
 // ---------------------------------------------------
 // Логика кнопки выбора файла
