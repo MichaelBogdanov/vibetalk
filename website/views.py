@@ -510,15 +510,19 @@ def create_server(request):
 
 @login_required
 def create_room(request):
-    if request.method == 'POST' and request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-        server = Server.objects.get(id=request.POST.get('server_id'))
-        if server:
-            try:
-                ServerRoom.objects.create(server=server)
-                return JsonResponse({'status': 'ok'})
-            except CustomUser.DoesNotExist:
-                return JsonResponse({'status': 'error', 'message': 'Сервер не найден'})
-    return JsonResponse({'status': 'error', 'message': 'Неверный метод запроса'})
+    if request.method != 'POST' or request.headers.get('X-Requested-With') != 'XMLHttpRequest':
+        return JsonResponse({'status': 'error', 'message': 'Неверный метод запроса'}, status=400)
+
+    try:
+        server = Server.objects.get(pk=request.POST.get('server_id'))
+    except (Server.DoesNotExist, ValueError, TypeError):
+        return JsonResponse({'status': 'error', 'message': 'Сервер не найден'}, status=404)
+
+    if server.owner_id != request.user.pk:
+        return JsonResponse({'status': 'error', 'message': 'Недостаточно прав'}, status=403)
+
+    ServerRoom.objects.create(server=server)
+    return JsonResponse({'status': 'ok'})
 
 @login_required
 def room(request, room_id=None, user_id=None):
