@@ -5,6 +5,7 @@ from channels.db import database_sync_to_async
 from .models import Message, CustomUser, Friendship
 from django.urls import reverse
 from django.conf import settings
+from .storage import INLINE_IMAGE_MIME_TYPES
 
 def _dm_group_name(user_a_id, user_b_id):
     a = int(user_a_id)
@@ -106,5 +107,5 @@ class PrivateChatConsumer(AsyncJsonWebsocketConsumer):
             'download_url': download_url,
             'filename': message.uploaded_file.name.split('/')[-1],
             'size': message.uploaded_file.size,
-            'is_image': mime_type and mime_type.startswith('image/') if mime_type else False
+            'is_image': mime_type in INLINE_IMAGE_MIME_TYPES
         }

@@ -10,6 +10,7 @@ from pathlib import Path
 from django.urls import reverse
 from .forms import *
 from .models import *
+from .storage import INLINE_IMAGE_MIME_TYPES
 from .zego import generate_token04
 import mimetypes
 from django.template.loader import render_to_string
@@ -186,7 +187,7 @@ def messages_paginated(request, peer_id):
                 'url': reverse('website:get_message_file', args=[m.id]),
                 'filename': m.uploaded_file.name.split('/')[-1],
                 'size': m.uploaded_file.size,
-                'is_image': mime_type and mime_type.startswith('image/') if mime_type else False
+                'is_image': mime_type in INLINE_IMAGE_MIME_TYPES
             }
         
         data.append({
@@ -224,7 +225,7 @@ def get_messages(request, user_id):
                 'url': reverse('website:get_message_file', args=[message.id]),
                 'filename': message.uploaded_file.name.split('/')[-1],
                 'size': message.uploaded_file.size,
-                'is_image': mime_type and mime_type.startswith('image/') if mime_type else False
+                'is_image': mime_type in INLINE_IMAGE_MIME_TYPES
             }
         
         messages_data.append({
@@ -281,7 +282,7 @@ def conversation(request, user_id):
                 'download_url': f"{reverse('website:get_message_file', args=[message.id])}?download=true",
                 'filename': message.uploaded_file.name.split('/')[-1],
                 'size': message.uploaded_file.size,
-                'is_image': mime_type and mime_type.startswith('image/') if mime_type else False
+                'is_image': mime_type in INLINE_IMAGE_MIME_TYPES
             }
         
         # Отправляем событие через WebSocket
@@ -375,6 +376,7 @@ def get_message_file(request, message_id):
         # Устанавливаем Content-Type
         if mime_type:
             response['Content-Type'] = mime_type
+        response['X-Content-Type-Options'] = 'nosniff'
         
         # Используем оригинальное имя файла, если оно сохранено
         if msg.original_filename:
@@ -392,8 +394,9 @@ def get_message_file(request, message_id):
         import urllib.parse
         filename = urllib.parse.quote(filename)
         
-        # Если это не изображение или запрошено скачивание - отдаем как вложение
-        if not mime_type or not mime_type.startswith('image/') or request.GET.get('download'):
+        # Keep active formats such as SVG from executing as same-origin documents.
+        force_download = request.GET.get('download', '').lower() in {'1', 'true', 'yes'}
+        if mime_type not in INLINE_IMAGE_MIME_TYPES or force_download:
             response['Content-Disposition'] = f'attachment; filename="{filename}"'
         else:
             response['Content-Disposition'] = f'inline; filename="{filename}"'
@@ -428,7 +431,7 @@ def get_file_info(request, message_id):
     
     return JsonResponse({
         'filename': filename,
-        'is_image': mime_type and mime_type.startswith('image/'),
+        'is_image': mime_type in INLINE_IMAGE_MIME_TYPES,
         'mime_type': mime_type,
         'size': msg.uploaded_file.size,
         'url': reverse('website:get_message_file', args=[message_id]),
