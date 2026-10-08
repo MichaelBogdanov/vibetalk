@@ -23,12 +23,13 @@ def login_required(view):
             return view(*args, **kwargs)
         else:
             return redirect('website:login')
+    return wrapper
 
 
 def _get_my_servers(user):
     memberships = ServerMember.objects.filter(member=user).select_related('server')
     return [membership.server for membership in memberships]
-    return wrapper
+
 
 def register(request):
     data = {
