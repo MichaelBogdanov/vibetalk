@@ -50,22 +50,33 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
         return f"{self.first_name} {self.last_name}"
 
     def get_friends(self):
-        friendships_as_initiator = Friendship.objects.filter(user_from=self)
-        friendships_as_acceptor = Friendship.objects.filter(user_to=self)
-        friends = []
-        for friendship in friendships_as_initiator:
-            friend = friendship.user_to
-            if any(friendships_as_acceptor.filter(user_from=friend)):
-                friends.append(friend)
-        return friends
+        friendships = (
+            Friendship.objects
+            .filter(user_from=self, user_to__friendships_from__user_to=self)
+            .exclude(user_to=self)
+            .select_related('user_to')
+        )
+        return [friendship.user_to for friendship in friendships]
 
     def get_send_invitations(self):
-        invitations = [friendship.user_to for friendship in Friendship.objects.filter(user_from=self) if friendship.user_to not in self.get_friends() and friendship.user_to != self]
-        return invitations
+        invitations = (
+            Friendship.objects
+            .filter(user_from=self)
+            .exclude(user_to=self)
+            .exclude(user_to__friendships_from__user_to=self)
+            .select_related('user_to')
+        )
+        return [friendship.user_to for friendship in invitations]
 
     def get_received_invitations(self):
-        invitations = [friendship.user_from for friendship in Friendship.objects.filter(user_to=self) if friendship.user_from not in self.get_friends() and friendship.user_from != self]
-        return invitations
+        invitations = (
+            Friendship.objects
+            .filter(user_to=self)
+            .exclude(user_from=self)
+            .exclude(user_from__friendships_from__user_to=self)
+            .select_related('user_from')
+        )
+        return [friendship.user_from for friendship in invitations]
 
     class Meta:
         verbose_name = 'пользователя'
