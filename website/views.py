@@ -23,6 +23,11 @@ def login_required(view):
             return view(*args, **kwargs)
         else:
             return redirect('website:login')
+
+
+def _get_my_servers(user):
+    memberships = ServerMember.objects.filter(member=user).select_related('server')
+    return [membership.server for membership in memberships]
     return wrapper
 
 def register(request):
@@ -62,7 +67,7 @@ def logout_view(request):
 @login_required
 def index(request):
     data = {
-        'my_servers': [elem.server for elem in ServerMember.objects.filter(member=request.user)],
+        'my_servers': _get_my_servers(request.user),
         'title': 'Главная'
     }
     return render(request, "index.html", data)
@@ -70,7 +75,7 @@ def index(request):
 @login_required
 def me(request):
     data = {
-        'my_servers': [elem.server for elem in ServerMember.objects.filter(member=request.user)],
+        'my_servers': _get_my_servers(request.user),
         'title': 'Мои сообщения',
         'friends': request.user.get_friends(),
         'send_invitations': request.user.get_send_invitations(),
@@ -80,15 +85,19 @@ def me(request):
 
 @login_required
 def servers(request, id=None):
+    memberships = ServerMember.objects.filter(member=request.user)
+    joined_server_ids = memberships.values_list('server_id', flat=True)
+    available_servers = Server.objects.filter(is_private=False).exclude(pk__in=joined_server_ids)
+    if id:
+        available_servers = available_servers.filter(category_id=id)
+
     data = {
-        'my_servers': [elem.server for elem in ServerMember.objects.filter(member=request.user)],
+        'my_servers': [membership.server for membership in memberships.select_related('server')],
         'title': 'Сервера',
-        'servers': [i for i in Server.objects.all() if not ServerMember.objects.filter(server=i, member=request.user) and not i.is_private],
+        'servers': available_servers.select_related('category'),
         'server_categories': ServerCategory.objects.all(),
         'selected_category': id
     }
-    if id:
-        data['servers'] = [server for server in data['servers'] if server.category == id]
     return render(request, "servers.html", data)
 
 @login_required
@@ -318,7 +327,7 @@ def conversation(request, user_id):
     friend = recipient
     
     data = {
-        'my_servers': [elem.server for elem in ServerMember.objects.filter(member=request.user)],
+        'my_servers': _get_my_servers(request.user),
         'title': f'Чат: {friend.first_name} {friend.last_name}',
         'friends': request.user.get_friends(),
         'friend': friend,
@@ -464,7 +473,7 @@ def server(request, server_id):
     else:
         form = PostForm()
     data = {
-        'my_servers': [elem.server for elem in ServerMember.objects.filter(member=request.user)],
+        'my_servers': _get_my_servers(request.user),
         'server': Server.objects.get(id=server_id),
         'form': form
     }
@@ -511,7 +520,7 @@ def create_server(request):
         form = ServerForm()
     
     context = {
-        'my_servers': [elem.server for elem in ServerMember.objects.filter(member=request.user)],
+        'my_servers': _get_my_servers(request.user),
         'form': form,
     }
     return render(request, 'create_server.html', context)
