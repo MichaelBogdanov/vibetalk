@@ -13,17 +13,21 @@
     <a class="conversation-call" href="talk/" aria-label="Начать голосовой разговор" title="Позвонить">{% fa5_icon 'microphone-alt' 'fas' %}</a>
 </h1>
 <div id="messages-container" role="log" aria-label="Переписка с {{ friend.first_name }} {{ friend.last_name }}" aria-live="polite"></div>
-<p id="filename">&nbsp;</p>
-<p class="composer-hint">Enter — отправить · Shift + Enter — новая строка</p>
 <form enctype="multipart/form-data" method="post" id="message-form" aria-label="Новое сообщение">
     {% csrf_token %}
-    <textarea id="message" name="message" rows="3" maxlength="8192" placeholder="Введите ваше сообщение" aria-label="Текст сообщения"></textarea>
-    <label for="file_upload" class="custom_file_upload" aria-label="Прикрепить файл" title="Прикрепить файл">
-        {% fa5_icon 'plus' 'fa' %}
-    </label>
-    <button id="send_message" type="submit" aria-label="Отправить сообщение" title="Отправить сообщение"><span>{% fa5_icon 'arrow-right' 'fa' %}</span></button>
-    <input type="file" name="file_upload" value="" id="file_upload">
-    <input type="hidden" name="recipient" value="{{ friend.id }}" />
+    <div class="composer-meta">
+        <p id="filename" aria-live="polite"></p>
+        <p class="composer-hint">Enter — отправить · Shift + Enter — новая строка</p>
+    </div>
+    <div class="composer-controls">
+        <label for="file_upload" class="custom_file_upload" aria-label="Прикрепить файл" title="Прикрепить файл">
+            {% fa5_icon 'plus' 'fa' %}
+        </label>
+        <textarea id="message" name="message" rows="3" maxlength="8192" placeholder="Введите ваше сообщение" aria-label="Текст сообщения"></textarea>
+        <button id="send_message" type="submit" aria-label="Отправить сообщение" title="Отправить сообщение"><span>{% fa5_icon 'arrow-right' 'fa' %}</span></button>
+        <input type="file" name="file_upload" value="" id="file_upload">
+        <input type="hidden" name="recipient" value="{{ friend.id }}" />
+    </div>
 </form>
 <script type="text/javascript">
 const textarea = document.getElementById('message');
@@ -201,7 +205,7 @@ async function loadInitialMessages() {
         messagesDiv.scrollTop = messagesDiv.scrollHeight;
     } catch (error) {
         console.error('Ошибка загрузки истории сообщений:', error);
-        showToast({icon: 'error', title: 'Не удалось загрузить историю', text: 'Обновите страницу или попробуйте позже.'});
+        showToast({icon: 'error', title: 'Не удалось загрузить историю', text: 'Обновите страницу или попробуйте позже'});
     }
 }
 
@@ -232,7 +236,7 @@ async function loadOlderMessages() {
         messagesDiv.scrollTop = prevTop + (messagesDiv.scrollHeight - prevHeight);
     } catch (error) {
         console.error('Ошибка загрузки старых сообщений:', error);
-        showToast({icon: 'error', title: 'Не удалось загрузить сообщения', text: 'Попробуйте прокрутить вверх ещё раз.'});
+        showToast({icon: 'error', title: 'Не удалось загрузить сообщения', text: 'Попробуйте прокрутить вверх ещё раз'});
     } finally {
         loadingHistory = false;
     }
@@ -413,7 +417,7 @@ document.getElementById('message-form').addEventListener('submit', async functio
         pendingMessages.set(clientMessageId, entry);
         if (!persistPendingMessages()) {
             pendingMessages.delete(clientMessageId);
-            showToast({icon: 'error', title: 'Не удалось поставить сообщение в очередь', text: 'Текст остался в поле ввода.'});
+            showToast({icon: 'error', title: 'Не удалось поставить сообщение в очередь', text: 'Текст остался в поле ввода'});
             return;
         }
         messagesDiv.appendChild(entry.element);
@@ -457,7 +461,7 @@ async function uploadFileAndSendMessage(text, file) {
         currentFileClientMessageId = null;
     } catch (error) {
         console.error('Ошибка отправки файла:', error);
-        showToast({icon: 'error', title: 'Сообщение не отправлено', text: 'Проверьте соединение и повторите попытку.'});
+        showToast({icon: 'error', title: 'Сообщение не отправлено', text: 'Проверьте соединение и повторите попытку'});
     } finally {
         isUploadingFile = false;
         submitButton.disabled = false;
@@ -476,16 +480,7 @@ function createTemporaryMessageElement(entry, statusText) {
     const div = document.createElement("div");
     div.className = "message temporary";
     div.dataset.temp = "true";
-    div.innerHTML = `
-        <div class="message-header">
-            <small class="message-time">${readableDate}</small>
-        </div>
-        <div class="message-content">
-            <span class="message-sender">Вы:</span>
-            ${escapeHtml(entry.text || "")}
-            <span class="message-status">${escapeHtml(statusText)}</span>
-        </div>
-    `;
+    div.innerHTML = `<div class="message-header"><small class="message-time">${readableDate}</small></div><div class="message-content"><span class="message-sender">Вы:</span>${escapeHtml(entry.text || "")}<span class="message-status">${escapeHtml(statusText)}</span></div>`;
     
     return div;
 }
@@ -552,17 +547,10 @@ function createMessageElement(msg) {
             `;
         }
     }
+
+    fileHtml = fileHtml.trim();
     
-    div.innerHTML = `
-        <div class="message-header">
-            <small class="message-time">${readableDate}</small>
-        </div>
-        <div class="message-content">
-            <span class="message-sender">${escapeHtml(senderLabel)}:</span>
-            ${escapeHtml(msg.message || "")}
-            ${fileHtml}
-        </div>
-    `;
+    div.innerHTML = `<div class="message-header"><small class="message-time">${readableDate}</small></div><div class="message-content"><span class="message-sender">${escapeHtml(senderLabel)}:</span>${escapeHtml(msg.message || "")}${fileHtml}</div>`;
     
     // Инициализируем Fancybox для изображений
     if (window.Fancybox) {

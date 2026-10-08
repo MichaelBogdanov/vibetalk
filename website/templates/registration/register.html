@@ -10,13 +10,68 @@
     <main class="auth-panel">
         <p class="eyebrow">Присоединяйтесь</p>
         <h1>Создайте аккаунт</h1>
-        <p class="auth-description">Найдите друзей и откройте для себя сообщества по интересам.</p>
-        <form method="post">
+        <p class="auth-description">Найдите друзей и откройте для себя сообщества по интересам</p>
+        <form method="post" class="registration-form">
             {% csrf_token %}
-            {{ form.as_p }}
+            {{ form.non_field_errors }}
+
+            <div class="auth-field{% if form.email.errors %} has-error{% endif %}">
+                <label for="{{ form.email.id_for_label }}">{{ form.email.label }}</label>
+                {{ form.email }}
+                {% if form.email.errors %}<ul class="field-errors" role="alert">{% for error in form.email.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}
+            </div>
+            <div class="auth-field{% if form.first_name.errors %} has-error{% endif %}">
+                <label for="{{ form.first_name.id_for_label }}">{{ form.first_name.label }}</label>
+                {{ form.first_name }}
+                {% if form.first_name.errors %}<ul class="field-errors" role="alert">{% for error in form.first_name.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}
+            </div>
+            <div class="auth-field{% if form.last_name.errors %} has-error{% endif %}">
+                <label for="{{ form.last_name.id_for_label }}">{{ form.last_name.label }}</label>
+                {{ form.last_name }}
+                {% if form.last_name.errors %}<ul class="field-errors" role="alert">{% for error in form.last_name.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}
+            </div>
+            <div class="auth-field password-field{% if form.password1.errors %} has-error{% endif %}">
+                <label for="{{ form.password1.id_for_label }}">{{ form.password1.label }}</label>
+                {{ form.password1 }}
+                {% if form.password1.errors %}<ul class="field-errors" role="alert">{% for error in form.password1.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}
+                <section class="password-guidance" aria-labelledby="password-guidance-title">
+                    <h2 id="password-guidance-title">Требования к паролю</h2>
+                    <ul class="password-rules">
+                        <li data-password-rule="length"><span aria-hidden="true"></span>Не менее 8 символов</li>
+                        <li data-password-rule="digit"><span aria-hidden="true"></span>Хотя бы одна цифра</li>
+                        <li data-password-rule="special"><span aria-hidden="true"></span>Хотя бы один спецсимвол</li>
+                    </ul>
+                    <p>{{ form.password1.help_text }}</p>
+                </section>
+            </div>
+            <div class="auth-field{% if form.password2.errors %} has-error{% endif %}">
+                <label for="{{ form.password2.id_for_label }}">{{ form.password2.label }}</label>
+                {{ form.password2 }}
+                {% if form.password2.errors %}<ul class="field-errors" role="alert">{% for error in form.password2.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}
+            </div>
             <button type="submit">Зарегистрироваться</button>
         </form>
         <p class="auth-switch">Уже есть аккаунт? <a href="/login/">Войти</a></p>
     </main>
+    <script>
+        const passwordField = document.getElementById('{{ form.password1.id_for_label }}');
+        const passwordRules = document.querySelector('.password-rules');
+
+        function updatePasswordRules() {
+            const value = passwordField.value;
+            const checks = {
+                length: value.length >= 8,
+                digit: /\d/.test(value),
+                special: /[!@#$%^&*(),.?":{}|<>]/.test(value),
+            };
+
+            Object.entries(checks).forEach(([rule, satisfied]) => {
+                passwordRules.querySelector(`[data-password-rule="${rule}"]`).classList.toggle('is-satisfied', satisfied);
+            });
+        }
+
+        passwordField.addEventListener('input', updatePasswordRules);
+        updatePasswordRules();
+    </script>
 </body>
 </html>

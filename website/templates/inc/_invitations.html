@@ -13,7 +13,7 @@
     {% endfor %}
     {% else %}
     <h3>Отправленные</h3>
-    <p class="invitation-empty">Здесь появятся заявки, которые вы отправите.</p>
+    <p class="invitation-empty">Здесь появятся отправленные вами заявки</p>
     {% endif %}
 </section>
 
@@ -30,7 +30,7 @@
     {% endfor %}
     {% else %}
     <h3>Полученные</h3>
-    <p class="invitation-empty">Новых заявок пока нет.</p>
+    <p class="invitation-empty">Новых заявок пока нет</p>
     {% endif %}
 </section>
 
@@ -53,7 +53,7 @@ $(document).ready(function () {
                     article.remove();
                     if ($('#received-invitations article').length === 0) {
                         $('#received-invitations').append(
-                            $('<p>', { class: 'invitation-empty', text: 'Новых заявок пока нет.' })
+                            $('<p>', { class: 'invitation-empty', text: 'Новых заявок пока нет' })
                         );
                     }
                     $('aside').html(response.friends_html);
@@ -77,7 +77,7 @@ $(document).ready(function () {
                 showToast({
                     icon: "error",
                     title: "Не удалось принять заявку",
-                    text: "Проверьте соединение и попробуйте ещё раз.",
+                    text: "Проверьте соединение и попробуйте ещё раз",
                 });
             }
         });
@@ -98,7 +98,7 @@ $(document).ready(function () {
                     article.remove();
                     if ($('#sended-invitations article').length === 0) {
                         $('#sended-invitations').append(
-                            $('<p>', { class: 'invitation-empty', text: 'Здесь появятся заявки, которые вы отправите.' })
+                            $('<p>', { class: 'invitation-empty', text: 'Здесь появятся отправленные вами заявки' })
                         );
                     }
                     showToast({
@@ -120,7 +120,7 @@ $(document).ready(function () {
                 showToast({
                     icon: "error",
                     title: "Не удалось отменить заявку",
-                    text: "Проверьте соединение и попробуйте ещё раз.",
+                    text: "Проверьте соединение и попробуйте ещё раз",
                 });
             }
         });

@@ -10,7 +10,16 @@ class CustomUserCreationForm(UserCreationForm):
         self.fields['first_name'].widget.attrs.update({'placeholder': 'Введите ваше имя', 'autocomplete': 'given-name'})
         self.fields['last_name'].widget.attrs.update({'placeholder': 'Введите вашу фамилию', 'autocomplete': 'family-name'})
         self.fields['password1'].widget.attrs.update({'placeholder': 'Введите ваш пароль', 'autocomplete': 'new-password'})
+        self.fields['password1'].widget.attrs.update({'aria-describedby': 'password-guidance'})
         self.fields['password2'].widget.attrs.update({'placeholder': 'Повторите ваш пароль', 'autocomplete': 'new-password'})
+        self.fields['password1'].help_text = _(
+            'Не используйте частые пароли и данные из имени или почты'
+        )
+
+        if self.is_bound:
+            for field_name in self.fields:
+                if self[field_name].errors:
+                    self.fields[field_name].widget.attrs['aria-invalid'] = 'true'
 
     class Meta:
         model = CustomUser

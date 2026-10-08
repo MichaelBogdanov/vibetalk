@@ -108,16 +108,16 @@ AUTH_PASSWORD_VALIDATORS = [
         'NAME': 'website.validators.PasswordRequirementsValidator',
     },
     {
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
+        'NAME': 'website.validators.RussianUserAttributeSimilarityValidator',
     },
     {
-        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+        'NAME': 'website.validators.RussianMinimumLengthValidator',
     },
     {
-        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
+        'NAME': 'website.validators.RussianCommonPasswordValidator',
     },
     {
-        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
+        'NAME': 'website.validators.RussianNumericPasswordValidator',
     },
 ]
 

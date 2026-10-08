@@ -22,7 +22,7 @@
     <img src="/media/{{ server.photo }}" alt="" fetchpriority="high">
     <h1>{{ server.name }}</h1>
 </header>
-<p class="server-description">{{ server.description|default:"Знакомьтесь, общайтесь и делитесь новостями этого сообщества." }}</p>
+<p class="server-description">{{ server.description|default:"Знакомьтесь, общайтесь и делитесь новостями этого сообщества" }}</p>
 <section id="server_posts" aria-labelledby="posts-heading">
     <header class="section-heading">
         <div>
@@ -39,12 +39,30 @@
     </article>
     {% endfor %}
     {% else %}
-    <p class="empty-feed">Здесь пока нет объявлений. Добавьте первое, чтобы начать разговор.</p>
+    <p class="empty-feed">Здесь пока нет объявлений — создайте первое</p>
     {% endif %}
 </section>
 <form method="post" id="server-post-form" class="post-composer" aria-label="Опубликовать объявление">
     {% csrf_token %}
-    {{ form.as_p }}
+    <div class="post-composer-heading">
+        <div>
+            <p class="eyebrow">Публикация</p>
+            <h2>Новое объявление</h2>
+        </div>
+        <p>Сообщение появится в ленте сервера</p>
+    </div>
+    <div class="post-composer-fields">
+        <div class="post-field{% if form.title.errors %} has-error{% endif %}">
+            <label for="{{ form.title.id_for_label }}">Заголовок</label>
+            {{ form.title }}
+            {% if form.title.errors %}<ul class="field-errors" role="alert">{% for error in form.title.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}
+        </div>
+        <div class="post-field{% if form.post.errors %} has-error{% endif %}">
+            <label for="{{ form.post.id_for_label }}">Текст объявления</label>
+            {{ form.post }}
+            {% if form.post.errors %}<ul class="field-errors" role="alert">{% for error in form.post.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}
+        </div>
+    </div>
     <button type="submit">{% fa5_icon 'paper-plane' 'fa' %}<span>Опубликовать</span></button>
 </form>
 
@@ -89,7 +107,7 @@ $('body').on('click', '.create-room-button', function () {
                 showToast({
                     icon: "success",
                     title: "Голосовая комната создана",
-                    text: "Можно сразу перейти к разговору.",
+                    text: "Можно сразу перейти к разговору",
                 });
             } else {
                 Swal.fire({
@@ -103,7 +121,7 @@ $('body').on('click', '.create-room-button', function () {
             showToast({
                 icon: "error",
                 title: "Не удалось создать комнату",
-                text: "Проверьте соединение и попробуйте ещё раз.",
+                text: "Проверьте соединение и попробуйте ещё раз",
             });
         },
         complete: function () {

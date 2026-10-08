@@ -14,7 +14,6 @@
             </a>
         </li>
         {% endif %}
-        <li class="server-divider" role="presentation"></li>
         {% for server in my_servers %}
         {% url 'website:server' server.id as server_url %}
         <li{% if request.path == server_url %} class="active"{% endif %}>

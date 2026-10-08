@@ -28,7 +28,7 @@
     <div class="page-heading-copy">
         <p class="eyebrow">Сообщества</p>
         <h1>Найдите своё место</h1>
-        <p class="page-description">Выберите сервер по интересам и присоединяйтесь к общению.</p>
+        <p class="page-description">Выберите сервер по интересам и присоединяйтесь к общению</p>
     </div>
 </header>
 <section class="servers">
@@ -39,7 +39,7 @@
         <div class="server-card-copy">
             <span class="server-category">{{ server.category }}</span>
             <h2>{{ server.name }}</h2>
-            <p>{{ server.description|default:"Описание пока не добавили." }}</p>
+            <p>{{ server.description|default:"Описание пока не добавили" }}</p>
         </div>
         <form action="{% url 'website:join_server' server.id %}" method="post" aria-label="Вступить на сервер «{{ server.name }}»">
             {% csrf_token %}
@@ -53,10 +53,10 @@
         {% fa5_icon 'compass' 'fa' %}
         <h2>Здесь пока нет серверов</h2>
         {% if selected_category %}
-        <p>Попробуйте посмотреть все сообщества или создайте своё.</p>
+        <p>Посмотрите все сообщества или создайте своё</p>
         <a class="button" href="{% url 'website:servers' %}">Показать все</a>
         {% else %}
-        <p>Создайте своё сообщество и пригласите людей по интересам.</p>
+        <p>Создайте сообщество и пригласите людей по интересам</p>
         <a class="button" href="{% url 'website:create_server' %}">Создать сервер</a>
         {% endif %}
     </div>

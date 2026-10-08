@@ -11,7 +11,7 @@
         <div>
             <p class="eyebrow">Люди</p>
             <h1>Найдите друзей</h1>
-            <p>Общайтесь один на один или приглашайте знакомых в свои сообщества.</p>
+            <p>Общайтесь один на один или приглашайте знакомых в свои сообщества</p>
         </div>
     </header>
     <label class="field-label" for="search-input">Поиск по имени или почте</label>
@@ -19,8 +19,8 @@
         {% fa5_icon 'search' 'fa' %}
         <input type="search" id="search-input" placeholder="Например, Анна или anna@example.com" autocomplete="off" aria-describedby="search-hint" aria-controls="results-container">
     </div>
-    <p class="search-hint" id="search-hint">Введите не меньше двух символов.</p>
-    <p class="search-status" id="search-status" data-state="idle" role="status" aria-live="polite">Начните вводить, чтобы найти людей.</p>
+    <p class="search-hint" id="search-hint">Введите не меньше двух символов</p>
+    <p class="search-status" id="search-status" data-state="idle" role="status" aria-live="polite">Начните вводить, чтобы найти людей</p>
     <section id="results-container" aria-label="Результаты поиска"></section>
 </section>
 <script>
@@ -54,7 +54,7 @@ $(document).ready(function () {
     function renderResults(users) {
         results.empty();
         if (!Array.isArray(users) || users.length === 0) {
-            setStatus('Никого не нашли. Попробуйте изменить запрос.', 'empty');
+            setStatus('Никого не нашли — попробуйте изменить запрос', 'empty');
             return;
         }
 
@@ -91,7 +91,7 @@ $(document).ready(function () {
         }).fail(function (_xhr, stateName) {
             if (stateName !== 'abort' && query === input.val().trim()) {
                 results.empty();
-                setStatus('Поиск временно недоступен. Попробуйте ещё раз.', 'error');
+                setStatus('Поиск временно недоступен — попробуйте ещё раз', 'error');
             }
         }).always(function () {
             if (activeSearch === request) activeSearch = null;
@@ -107,7 +107,7 @@ $(document).ready(function () {
         }
         results.empty();
         if (query.length < 2) {
-            setStatus(query ? 'Введите ещё хотя бы один символ.' : 'Начните вводить, чтобы найти людей.', 'idle');
+            setStatus(query ? 'Введите ещё хотя бы один символ' : 'Начните вводить, чтобы найти людей', 'idle');
             return;
         }
         searchTimer = setTimeout(function () { searchUsers(query); }, 240);
@@ -128,14 +128,14 @@ $(document).ready(function () {
                     button.closest('article').remove();
                     const remaining = results.children().length;
                     setStatus(
-                        remaining ? 'Осталось результатов: ' + remaining : 'Заявка отправлена. Можно найти других людей.',
+                        remaining ? 'Осталось результатов: ' + remaining : 'Заявка отправлена — можно найти других людей',
                         'success'
                     );
                     $('#invitations-section').html(response.invitations_html);
                     showToast({
                         icon: "success",
                         title: "Заявка отправлена",
-                        text: "Когда её примут, вы сможете начать переписку.",
+                        text: "Когда её примут, вы сможете начать переписку",
                     });
                 } else {
                     button.prop('disabled', false).removeAttr('aria-busy');
@@ -151,7 +151,7 @@ $(document).ready(function () {
                 showToast({
                     icon: "error",
                     title: "Не удалось отправить заявку",
-                    text: "Проверьте соединение и попробуйте ещё раз.",
+                    text: "Проверьте соединение и попробуйте ещё раз",
                 });
             }
         });
