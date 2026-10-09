@@ -17,7 +17,7 @@
     <label class="field-label" for="search-input">Поиск по имени или почте</label>
     <div class="search-box">
         {% fa5_icon 'search' 'fa' %}
-        <input type="search" id="search-input" placeholder="Например, Анна или anna@example.com" autocomplete="off" aria-describedby="search-hint" aria-controls="results-container">
+        <input type="search" id="search-input" placeholder="Например, Михаил или rick4lderson@gmail.com" autocomplete="off" aria-describedby="search-hint" aria-controls="results-container">
     </div>
     <p class="search-hint" id="search-hint">Введите не меньше двух символов</p>
     <p class="search-status" id="search-status" data-state="idle" role="status" aria-live="polite">Начните вводить, чтобы найти людей</p>
@@ -54,7 +54,7 @@ $(document).ready(function () {
     function renderResults(users) {
         results.empty();
         if (!Array.isArray(users) || users.length === 0) {
-            setStatus('Никого не нашли — попробуйте изменить запрос', 'empty');
+            setStatus('Никого не нашли - попробуйте изменить запрос', 'empty');
             return;
         }
 
@@ -91,7 +91,7 @@ $(document).ready(function () {
         }).fail(function (_xhr, stateName) {
             if (stateName !== 'abort' && query === input.val().trim()) {
                 results.empty();
-                setStatus('Поиск временно недоступен — попробуйте ещё раз', 'error');
+                setStatus('Поиск временно недоступен - попробуйте ещё раз', 'error');
             }
         }).always(function () {
             if (activeSearch === request) activeSearch = null;
@@ -128,7 +128,7 @@ $(document).ready(function () {
                     button.closest('article').remove();
                     const remaining = results.children().length;
                     setStatus(
-                        remaining ? 'Осталось результатов: ' + remaining : 'Заявка отправлена — можно найти других людей',
+                        remaining ? 'Осталось результатов: ' + remaining : 'Заявка отправлена - можно найти других людей',
                         'success'
                     );
                     const invitationsWereOpen = $('#invitations-section .invitations-disclosure').prop('open');

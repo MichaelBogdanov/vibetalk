@@ -17,7 +17,7 @@
     {% csrf_token %}
     <div class="composer-meta">
         <p id="filename" aria-live="polite"></p>
-        <p class="composer-hint">Enter — отправить · Shift + Enter — новая строка</p>
+        <p class="composer-hint">Enter - отправить · Shift + Enter - новая строка</p>
     </div>
     <div class="composer-controls">
         <textarea id="message" name="message" rows="2" maxlength="8192" placeholder="Введите ваше сообщение" aria-label="Текст сообщения"></textarea>
@@ -95,7 +95,7 @@ realFileInput.addEventListener('change', function () {
         showToast({
             icon: "error",
             title: "Файл слишком большой",
-            text: `Максимальный размер — 50 МБ. Ваш файл: ${formatFileSize(file.size)}`
+            text: `Максимальный размер - 50 МБ. Ваш файл: ${formatFileSize(file.size)}`
         });
 
         // Сброс UI
@@ -521,7 +521,6 @@ function createMessageElement(msg) {
                             <img src="${safeFileUrl}" class="message-image-preview-img" loading="lazy">
                         </a>
                         <div class="image-actions">
-                            <small>${safeFilename}</small>
                             <a href="${safeDownloadUrl}" download>
                                 {% fa5_icon 'download' 'fa' %}
                             </a>
@@ -546,7 +545,7 @@ function createMessageElement(msg) {
                         <a href="${safeDownloadUrl}" download>
                             ${safeFilename}
                         </a>
-                        <small>(${size})</small>
+                        <small>(${siz})</small>
                     </div>
                 </div>
             `;

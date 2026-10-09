@@ -9,7 +9,6 @@ function showToast({ icon = "info", title = "", text = "", timer = 4000 }) {
         title,
         text,
         showConfirmButton: false,
-        timer,
         timerProgressBar: true,
         didOpen: (toast) => {
             toast.addEventListener("mouseenter", Swal.stopTimer);

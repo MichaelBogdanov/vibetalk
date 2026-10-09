@@ -7,13 +7,6 @@
                 <img src="{% static 'favicon/favicon.png' %}" alt="">
             </a>
         </li>
-        {% if user.is_superuser %}
-        <li>
-            <a href="/admin/website/" aria-label="Управление сайтом" title="Управление сайтом">
-            {% fa5_icon 'users-cog' 'fas' %}
-            </a>
-        </li>
-        {% endif %}
         {% for server in my_servers %}
         {% url 'website:server' server.id as server_url %}
         <li{% if request.path == server_url %} class="active"{% endif %}>
@@ -22,6 +15,13 @@
             </a>
         </li>
         {% endfor %}
+        {% if user.is_superuser %}
+        <li>
+            <a href="/admin/website/" aria-label="Управление сайтом" title="Управление сайтом">
+            {% fa5_icon 'users-cog' 'fas' %}
+            </a>
+        </li>
+        {% endif %}
         <li{% if request.resolver_match.url_name == 'servers' %} class="active"{% endif %}>
             <a href="{% url 'website:servers' %}" aria-label="Обзор серверов" title="Обзор серверов"{% if request.resolver_match.url_name == 'servers' %} aria-current="page"{% endif %}>
             {% fa5_icon 'compass' 'fa' %}
