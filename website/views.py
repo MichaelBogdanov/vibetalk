@@ -27,6 +27,15 @@ def login_required(view):
     return wrapper
 
 
+def guest_required(view):
+    def wrapper(*args, **kwargs):
+        if args[0].user.is_authenticated:
+            return redirect('website:home')
+        else:
+            return view(*args, **kwargs)
+    return wrapper
+
+
 def _get_my_servers(user):
     memberships = ServerMember.objects.filter(member=user).select_related('server')
     return [membership.server for membership in memberships]
@@ -45,6 +54,7 @@ def _get_message_page_params(request):
     return min(limit, 100), before
 
 
+@guest_required
 def register(request):
     data = {
         'title': 'Регистрация'
@@ -60,6 +70,7 @@ def register(request):
     data['form'] = form
     return render(request, 'registration/register.html', data)
 
+@guest_required
 def login_view(request):
     data = {
         'title': 'Вход'
@@ -75,6 +86,7 @@ def login_view(request):
     data['form'] = form
     return render(request, 'registration/login.html', data)
 
+@login_required
 def logout_view(request):
     logout(request)
     return redirect('website:login')
