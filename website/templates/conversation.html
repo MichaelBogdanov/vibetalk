@@ -77,6 +77,7 @@ fileInput.addEventListener('click', function(e) {
         fileInput.innerHTML = `{% fa5_icon 'plus' 'fa' %}`;
         fileInputLabel.innerHTML = `&nbsp;`;
         fileInputLabel.style.display = 'none';
+        document.getElementById('message-form').classList.remove('has-attachment');
         e.preventDefault();
         fileInput.setAttribute("for", "file_upload");
     }
@@ -86,6 +87,7 @@ realFileInput.addEventListener('change', function () {
     const file = this.files[0];
     if (!file) {
         currentFileClientMessageId = null;
+        document.getElementById('message-form').classList.remove('has-attachment');
         return;
     }
 
@@ -101,6 +103,7 @@ realFileInput.addEventListener('change', function () {
         fileInputLabel.innerHTML = '&nbsp;';
         fileInputLabel.style.display = 'none';
         fileInput.innerHTML = `{% fa5_icon 'plus' 'fa' %}`;
+        document.getElementById('message-form').classList.remove('has-attachment');
 
         return;
     }
@@ -109,6 +112,7 @@ realFileInput.addEventListener('change', function () {
         `Прикрепленный файл: ${file.name} (${formatFileSize(file.size)})`;
     fileInputLabel.style.display = 'block';
     fileInput.innerHTML = `{% fa5_icon 'ban' 'fa' %}`;
+    document.getElementById('message-form').classList.add('has-attachment');
     currentFileClientMessageId = createClientMessageId();
 });
 
@@ -458,6 +462,7 @@ async function uploadFileAndSendMessage(text, file) {
         fileInputLabel.textContent = '';
         fileInputLabel.style.display = 'none';
         document.querySelector('.custom_file_upload').innerHTML = `{% fa5_icon 'plus' 'fa' %}`;
+        document.getElementById('message-form').classList.remove('has-attachment');
         currentFileClientMessageId = null;
     } catch (error) {
         console.error('Ошибка отправки файла:', error);
