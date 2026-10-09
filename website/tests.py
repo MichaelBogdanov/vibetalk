@@ -1,4 +1,5 @@
 import uuid
+from datetime import timedelta
 from unittest.mock import patch
 from asgiref.sync import async_to_sync
 from channels.db import database_sync_to_async
@@ -7,6 +8,7 @@ from django.test import TestCase, TransactionTestCase
 from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
+from django.utils import timezone
 from .consumers import PrivateChatConsumer
 from .models import CustomUser, Friendship, Message
 from .validators import validate_password, validate_email
@@ -84,6 +86,85 @@ class PasswordValidatorTests(TestCase):
         # Проверяем, что пароль состоящий только из пробелов вызывает ошибку
         with self.assertRaises(ValidationError):
             validate_password("     ")
+
+
+class FriendListOrderingTests(TestCase):
+    def setUp(self):
+        self.user = CustomUser.objects.create_user(
+            email='owner@example.com',
+            password='ValidP@ssw0rd',
+            first_name='Owner',
+            last_name='User',
+        )
+        self.old_friend = self._create_friend('old@example.com', 'Old')
+        self.active_friend = self._create_friend('active@example.com', 'Active')
+        self.new_friend = self._create_friend('new@example.com', 'New')
+
+    def _create_friend(self, email, first_name):
+        friend = CustomUser.objects.create_user(
+            email=email,
+            password='ValidP@ssw0rd',
+            first_name=first_name,
+            last_name='Friend',
+        )
+        Friendship.objects.create(user_from=self.user, user_to=friend)
+        Friendship.objects.create(user_from=friend, user_to=self.user)
+        return friend
+
+    def _set_friendship_activity(self, friend, timestamp):
+        Friendship.objects.filter(user_from=self.user, user_to=friend).update(created_at=timestamp)
+        Friendship.objects.filter(user_from=friend, user_to=self.user).update(created_at=timestamp)
+
+    def test_friends_are_ordered_by_latest_message_or_friendship_event(self):
+        now = timezone.now()
+        self._set_friendship_activity(self.old_friend, now - timedelta(days=4))
+        self._set_friendship_activity(self.active_friend, now - timedelta(days=5))
+        self._set_friendship_activity(self.new_friend, now)
+
+        Message.objects.create(
+            sender=self.user,
+            recipient=self.old_friend,
+            message='Старое сообщение',
+        )
+        Message.objects.filter(sender=self.user, recipient=self.old_friend).update(
+            timestamp=now - timedelta(days=2)
+        )
+        Message.objects.create(
+            sender=self.active_friend,
+            recipient=self.user,
+            message='Недавнее сообщение',
+        )
+        Message.objects.filter(sender=self.active_friend, recipient=self.user).update(
+            timestamp=now - timedelta(hours=1)
+        )
+
+        self.assertEqual(
+            [friend.pk for friend in self.user.get_friends()],
+            [self.new_friend.pk, self.active_friend.pk, self.old_friend.pk],
+        )
+
+
+class FriendInvitationTests(TestCase):
+    def test_received_invitation_is_visible_until_friendship_is_mutual(self):
+        owner = CustomUser.objects.create_user(
+            email='invitation-owner@example.com',
+            password='ValidP@ssw0rd',
+            first_name='Owner',
+            last_name='User',
+        )
+        inviter = CustomUser.objects.create_user(
+            email='inviter@example.com',
+            password='ValidP@ssw0rd',
+            first_name='Inviter',
+            last_name='User',
+        )
+        Friendship.objects.create(user_from=inviter, user_to=owner)
+
+        self.assertEqual(owner.get_received_invitations(), [inviter])
+
+        Friendship.objects.create(user_from=owner, user_to=inviter)
+
+        self.assertEqual(owner.get_received_invitations(), [])
 
 
 class MessageIdempotencyTests(TransactionTestCase):

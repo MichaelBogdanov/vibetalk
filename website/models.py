@@ -1,5 +1,6 @@
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.db import models
+from django.db.models import Case, DateTimeField, F, OuterRef, Q, Subquery, When
 from django.conf import settings
 from .validators import validate_password
 from django.utils.translation import gettext_lazy as _
@@ -50,13 +51,40 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
         return f"{self.first_name} {self.last_name}"
 
     def get_friends(self):
-        friendships = (
-            Friendship.objects
-            .filter(user_from=self, user_to__friendships_from__user_to=self)
-            .exclude(user_to=self)
-            .select_related('user_to')
+        latest_message = Message.objects.filter(
+            Q(sender_id=OuterRef('pk'), recipient_id=self.pk)
+            | Q(sender_id=self.pk, recipient_id=OuterRef('pk'))
+        ).order_by('-timestamp').values('timestamp')[:1]
+        latest_friendship = Friendship.objects.filter(
+            Q(user_from_id=self.pk, user_to_id=OuterRef('pk'))
+            | Q(user_from=OuterRef('pk'), user_to_id=self.pk)
+        ).order_by('-created_at').values('created_at')[:1]
+
+        friends = (
+            CustomUser.objects
+            .filter(
+                friendships_from__user_to_id=self.pk,
+                friendships_to__user_from_id=self.pk,
+            )
+            .exclude(pk=self.pk)
+            .annotate(
+                latest_message_at=Subquery(latest_message),
+                latest_friendship_at=Subquery(latest_friendship),
+            )
+            .annotate(
+                last_activity_at=Case(
+                    When(
+                        latest_message_at__gt=F('latest_friendship_at'),
+                        then=F('latest_message_at'),
+                    ),
+                    default=F('latest_friendship_at'),
+                    output_field=DateTimeField(),
+                )
+            )
+            .order_by('-last_activity_at', 'first_name', 'last_name', 'pk')
+            .distinct()
         )
-        return [friendship.user_to for friendship in friendships]
+        return list(friends)
 
     def get_send_invitations(self):
         invitations = (
@@ -73,7 +101,7 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
             Friendship.objects
             .filter(user_to=self)
             .exclude(user_from=self)
-            .exclude(user_from__friendships_from__user_to=self)
+            .exclude(user_from__friendships_to__user_from=self)
             .select_related('user_from')
         )
         return [friendship.user_from for friendship in invitations]

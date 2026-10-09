@@ -6,7 +6,7 @@
     {% else %}
     <li>
     {% endif %}
-        <a href="/" aria-label="Найти друзей"{% if not friend %} aria-current="page"{% endif %}>{% fa5_icon 'search' 'fa' %}Найти друзей</a>
+        <a href="/" aria-label="Найти друзей" title="Найти друзей"{% if not friend %} aria-current="page"{% endif %}>{% fa5_icon 'search' 'fa' %}<span class="friend-search-label">Найти друзей</span></a>
     </li>
 
     {% for user in friends %}

@@ -20,10 +20,10 @@
         <p class="composer-hint">Enter — отправить · Shift + Enter — новая строка</p>
     </div>
     <div class="composer-controls">
+        <textarea id="message" name="message" rows="2" maxlength="8192" placeholder="Введите ваше сообщение" aria-label="Текст сообщения"></textarea>
         <label for="file_upload" class="custom_file_upload" aria-label="Прикрепить файл" title="Прикрепить файл">
             {% fa5_icon 'plus' 'fa' %}
         </label>
-        <textarea id="message" name="message" rows="3" maxlength="8192" placeholder="Введите ваше сообщение" aria-label="Текст сообщения"></textarea>
         <button id="send_message" type="submit" aria-label="Отправить сообщение" title="Отправить сообщение"><span>{% fa5_icon 'arrow-right' 'fa' %}</span></button>
         <input type="file" name="file_upload" value="" id="file_upload">
         <input type="hidden" name="recipient" value="{{ friend.id }}" />

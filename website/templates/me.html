@@ -131,7 +131,9 @@ $(document).ready(function () {
                         remaining ? 'Осталось результатов: ' + remaining : 'Заявка отправлена — можно найти других людей',
                         'success'
                     );
+                    const invitationsWereOpen = $('#invitations-section .invitations-disclosure').prop('open');
                     $('#invitations-section').html(response.invitations_html);
+                    $('#invitations-section .invitations-disclosure').prop('open', invitationsWereOpen);
                     showToast({
                         icon: "success",
                         title: "Заявка отправлена",

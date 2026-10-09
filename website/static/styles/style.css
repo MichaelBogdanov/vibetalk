@@ -244,6 +244,7 @@ a { color: inherit; text-decoration: none; }
 .aside .friends li:first-child { margin-bottom: 0.55rem; }
 .aside .friends li:first-child a { min-height: 2.85rem; background: var(--surface); color: var(--text); }
 .aside .friends li:first-child a > i { color: var(--accent); }
+.aside .friends .friend-search-label { min-width: 0; }
 .aside .friends li.active a { box-shadow: inset 2px 0 var(--accent); }
 
 .content {
@@ -466,8 +467,29 @@ button:disabled { cursor: wait; opacity: 0.65; }
 .invitations .cancel-friend-request { background: rgba(255,130,148,.1); color: var(--danger); }
 .invitations .cancel-friend-request:hover { background: rgba(255,130,148,.2); color: #ffb3bf; box-shadow: none; }
 .invitations { padding-left: clamp(1.1rem, 2vw, 1.8rem); border-left: 1px solid var(--border); }
-.invitations > h2 { margin: 0 0 1rem; font-size: 1.15rem; }
-.invitations section + section { margin-top: 1.4rem; }
+.invitations-disclosure { overflow: hidden; border: 1px solid var(--border); border-radius: var(--radius-card); background: rgba(28,31,41,.64); }
+.invitations-disclosure > summary {
+  display: flex;
+  min-height: 3.4rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+  padding: 0.8rem 1rem;
+  color: var(--text);
+  font-size: 0.94rem;
+  font-weight: 750;
+  list-style: none;
+  cursor: pointer;
+}
+.invitations-disclosure > summary::-webkit-details-marker { display: none; }
+.invitations-disclosure[open] > summary { border-bottom: 1px solid var(--border); }
+.disclosure-indicators { display: inline-flex; align-items: center; gap: 0.7rem; }
+.invitation-count { display: grid; min-width: 1.45rem; height: 1.45rem; place-items: center; padding: 0 0.35rem; border-radius: 999px; background: var(--accent-tint); color: var(--accent); font-size: 0.72rem; font-weight: 800; }
+.invitations-disclosure > summary i, .post-composer-summary > i { color: var(--text-muted); transition: transform 180ms var(--ease-out), color 150ms ease; }
+.invitations-disclosure > summary:hover i, .post-composer-summary:hover > i { color: var(--accent); }
+.invitations-disclosure[open] > summary i, .post-composer[open] .post-composer-summary > i { transform: rotate(180deg); }
+.invitation-groups { display: grid; gap: 1rem; padding: 1rem; }
+.invitation-groups section + section { margin-top: 0; }
 .invitations section > h3 { margin: 0 0 0.65rem; color: var(--text-muted); font-size: 0.75rem; font-weight: 800; letter-spacing: 0.07em; text-transform: uppercase; }
 .invitations section > p { margin: 0; padding: 0.8rem; border-radius: 0.8rem; background: rgba(255,255,255,.025); color: var(--text-muted); font-size: 0.82rem; }
 
@@ -532,16 +554,28 @@ button:disabled { cursor: wait; opacity: 0.65; }
 #server_posts article p { margin: 0 0 0.6rem; color: var(--text-soft); font-size: 0.89rem; line-height: 1.65; white-space: pre-wrap; }
 #server_posts article small { color: var(--text-muted); font-size: 0.75rem; }
 #server_posts > .empty-feed { margin: 0; padding: 2.25rem 1rem; color: var(--text-muted); text-align: center; }
-.post-composer { display: grid; gap: 0.75rem; padding: 1rem; }
-.post-composer-heading { display: flex; min-width: 0; align-items: center; justify-content: space-between; gap: 1rem; }
-.post-composer-heading .eyebrow { margin-bottom: 0.15rem !important; }
-.post-composer-heading h2 { margin: 0; font-size: 0.98rem; }
-.post-composer-heading > p { display: block; margin: 0; color: var(--text-muted); font-size: 0.75rem; text-align: right; }
+.post-composer { min-width: 0; overflow: hidden; border: 1px solid var(--border); border-radius: var(--radius-card); background: var(--surface); }
+.post-composer-summary {
+  display: flex;
+  min-height: 4rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+  padding: 0.75rem 1rem;
+  list-style: none;
+  cursor: pointer;
+}
+.post-composer-summary::-webkit-details-marker { display: none; }
+.post-composer-summary-copy { display: grid; gap: 0.12rem; }
+.post-composer-summary-copy .eyebrow { margin-bottom: 0 !important; font-size: 0.65rem !important; }
+.post-composer-summary-copy strong { font-size: 0.94rem; }
+.post-composer > form { display: grid; gap: 0.75rem; margin: 0; padding: 0 1rem 1rem; border: 0; border-radius: 0; background: transparent; }
+.post-composer-description { margin: 0; color: var(--text-muted) !important; font-size: 0.76rem; }
 .post-composer-fields { display: grid; gap: 0.65rem; }
 .post-field { display: grid; min-width: 0; gap: 0.35rem; }
 .post-field input { min-height: 2.8rem; }
 .post-field textarea { min-height: 4.5rem; max-height: 9rem; resize: vertical; }
-.post-composer > button { min-width: 11rem; justify-self: end; }
+.post-composer > form > button { min-width: 11rem; justify-self: end; }
 
 .content:has(#messages-container) {
   display: grid;
@@ -638,8 +672,8 @@ button:disabled { cursor: wait; opacity: 0.65; }
 .composer-meta { display: flex; min-height: 1.1rem; align-items: center; justify-content: space-between; gap: 1rem; }
 #filename { min-width: 0; margin: 0; overflow: hidden; color: var(--text-soft); font-size: 0.75rem; text-overflow: ellipsis; white-space: nowrap; }
 .composer-hint { margin: 0; color: var(--text-muted); font-size: 0.69rem; text-align: right; }
-.composer-controls { display: grid; grid-template-columns: 3rem minmax(0,1fr) 3rem; align-items: center; gap: 0.65rem; }
-#message-form textarea { min-height: 4.5rem; max-height: 10rem; padding: 0.8rem 0.9rem; resize: vertical; line-height: 1.45; }
+.composer-controls { display: grid; grid-template-columns: minmax(0,1fr) 3rem; grid-template-rows: 3rem 3rem; align-items: stretch; gap: 0.45rem; }
+#message-form textarea { grid-column: 1; grid-row: 1 / span 2; width: 100%; height: 6.45rem; min-height: 0; max-height: 6.45rem; padding: 0.8rem 0.9rem; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; resize: none; line-height: 1.45; scrollbar-width: thin; }
 #message-form #file_upload { display: none; }
 #message-form .custom_file_upload {
   display: grid;
@@ -653,9 +687,10 @@ button:disabled { cursor: wait; opacity: 0.65; }
   cursor: pointer;
   transition: color 140ms ease, background-color 140ms ease, transform 140ms var(--ease-out);
 }
+#message-form .custom_file_upload { grid-column: 2; grid-row: 1; }
 #message-form .custom_file_upload:hover { background: var(--accent-tint); color: var(--accent); }
 #message-form .custom_file_upload:active { transform: scale(0.96); }
-#message-form #send_message { width: 3rem; min-width: 3rem; min-height: 3rem; padding: 0; }
+#message-form #send_message { grid-column: 2; grid-row: 2; width: 3rem; min-width: 3rem; min-height: 3rem; padding: 0; }
 #message-form #send_message span { display: grid; width: 100%; height: 100%; place-items: center; }
 #message-form #send_message span i { font-size: 1rem; }
 
@@ -704,12 +739,12 @@ body:has(#root) { min-height: 100dvh; overflow: hidden; }
 
 @media (max-width: 1000px) {
   .app-shell { grid-template-columns: 4.25rem minmax(12rem, 14.5rem) minmax(0,1fr); }
-  .content:has(.search) { grid-template-columns: minmax(0,1fr); grid-template-rows: minmax(0,1fr) minmax(12rem,0.8fr); }
+  .content:has(.search) { grid-template-columns: minmax(0,1fr); grid-template-rows: minmax(0,1fr) auto; overflow: auto; }
   .invitations { padding: 1.1rem 0 0; border-top: 1px solid var(--border); border-left: 0; }
 }
 @media (max-width: 700px) {
   .app-shell { grid-template-columns: minmax(0,1fr); grid-template-rows: 4.1rem auto minmax(0,1fr); }
-  .app-shell:has(.create_server) { grid-template-rows: 4.1rem minmax(0,1fr); }
+  .app-shell:has(.create_server) { grid-template-columns: minmax(0,1fr); grid-template-rows: 4.1rem minmax(0,1fr); }
   .app-shell:has(.create_server) > .aside { display: none; }
   .my_servers {
     grid-row: 1;
@@ -743,25 +778,27 @@ body:has(#root) { min-height: 100dvh; overflow: hidden; }
   .aside ul li a { min-height: 2.5rem; grid-template-columns: auto auto; grid-template-rows: 1fr; column-gap: 0.45rem; padding: 0.55rem 0.7rem; white-space: nowrap; }
   .aside ul li a > i { grid-row: 1; font-size: 0.8rem; }
   .aside ul li a small { display: none; }
-  .aside:has(.rooms) { display: grid; grid-template-rows: 1.55rem auto; }
-  .aside:has(.rooms) .rooms { max-height: 5rem; flex-direction: row; overflow-x: auto; overflow-y: hidden; }
+  .aside:has(.rooms) { display: grid; grid-template-rows: 2.35rem auto; max-height: 7.4rem; }
+  .aside:has(.rooms) h3 { min-height: 2.35rem; margin: 0; }
+  .aside:has(.rooms) h3 button { width: 2.05rem; min-width: 2.05rem; height: 2.05rem; min-height: 2.05rem; flex-basis: 2.05rem; padding: 0; }
+  .aside:has(.rooms) .rooms { max-height: 2.8rem; flex-direction: row; overflow-x: auto; overflow-y: hidden; }
+  .aside .friends li:first-child a { width: 2.75rem; justify-content: center; grid-template-columns: 1fr; padding: 0.55rem; }
+  .aside .friends .friend-search-label { display: none; }
   .content { grid-row: 3; grid-column: 1; padding: 1.2rem 1rem; }
-  .content:has(.search) { grid-template-rows: minmax(0,1fr) minmax(12rem,0.8fr); gap: 1rem; padding: 1rem; }
+  .content:has(.search) { grid-template-rows: minmax(0,1fr) auto; gap: 1rem; padding: 1rem; }
   .content:has(#messages-container) { grid-template-rows: auto minmax(0,1fr) auto; gap: 0.5rem; padding: 0.9rem 0.65rem max(0.65rem,env(safe-area-inset-bottom)); }
   .content:has(#messages-container) > h1 { padding-bottom: 0.65rem; }
   .content:has(#messages-container) #messages-container { padding: 0.7rem; }
   #message-form { padding: 0.65rem; }
-  .composer-controls { grid-template-columns: 2.85rem minmax(0,1fr) 2.85rem; gap: 0.5rem; }
-  #message-form textarea { min-height: 4rem; padding: 0.7rem; }
+  .composer-controls { grid-template-columns: minmax(0,1fr) 2.85rem; grid-template-rows: 2.85rem 2.85rem; gap: 0.45rem; }
+  #message-form textarea { height: 6.15rem; max-height: 6.15rem; padding: 0.7rem; }
   #message-form .custom_file_upload, #message-form #send_message { width: 2.85rem; min-width: 2.85rem; height: 2.85rem; min-height: 2.85rem; }
   #messages-container .message { max-width: 88%; }
   .composer-hint { display: none; }
   .content:has(#server_posts) { grid-template-rows: minmax(8rem,17dvh) auto minmax(0,1fr) auto; gap: 0.65rem; padding: 0.8rem 0.7rem; }
   .server-cover h1 { right: 0.9rem; bottom: 0.8rem; left: 0.95rem; }
   .content:has(#server_posts) { overflow-y: auto; }
-  .post-composer { gap: 0.65rem; padding: 0.75rem; }
-  .post-composer-heading { align-items: flex-start; }
-  .post-composer-heading > p { max-width: 9rem; font-size: 0.68rem; }
+  .post-composer > form > button { width: 100%; }
   .post-field textarea { min-height: 4rem; }
   .post-composer > button { width: 100%; }
   .content:has(.create_server) { justify-content: flex-start; padding-top: 1.5rem; }
@@ -783,8 +820,11 @@ body:has(#root) { min-height: 100dvh; overflow: hidden; }
   .composer-meta { gap: 0.4rem; }
   .composer-hint { font-size: 0.62rem; }
   #message-form { gap: 0.4rem; padding: 0.5rem; }
-  .composer-controls { grid-template-columns: 2.6rem minmax(0,1fr) 2.6rem; gap: 0.4rem; }
-  #message-form textarea { min-height: 3.7rem; padding: 0.6rem; font-size: 0.9rem; }
+  .aside:has(.rooms) { grid-template-rows: 2.2rem auto; max-height: 7.2rem; }
+  .aside:has(.rooms) h3 { min-height: 2.2rem; }
+  .aside:has(.rooms) h3 button { width: 1.95rem; min-width: 1.95rem; height: 1.95rem; min-height: 1.95rem; flex-basis: 1.95rem; }
+  .composer-controls { grid-template-columns: minmax(0,1fr) 2.6rem; grid-template-rows: 2.6rem 2.6rem; gap: 0.4rem; }
+  #message-form textarea { height: 5.6rem; max-height: 5.6rem; padding: 0.6rem; font-size: 0.9rem; }
   #message-form .custom_file_upload, #message-form #send_message { width: 2.6rem; min-width: 2.6rem; height: 2.6rem; min-height: 2.6rem; }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -796,6 +836,7 @@ body:has(#root) { min-height: 100dvh; overflow: hidden; }
   }
   .server-card:hover, button:active, .button:active, .my_servers .logout-link:active,
   .aside h3 button:active, .conversation-call:active, #message-form .custom_file_upload:active { transform: none; }
+  .invitations-disclosure > summary i, .post-composer-summary > i { transition: none; }
   .search-status[data-state="loading"]::before,
   .add-friend-button[aria-busy="true"]::after { animation: none; }
 }

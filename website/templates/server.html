@@ -42,29 +42,32 @@
     <p class="empty-feed">Здесь пока нет объявлений — создайте первое</p>
     {% endif %}
 </section>
-<form method="post" id="server-post-form" class="post-composer" aria-label="Опубликовать объявление">
-    {% csrf_token %}
-    <div class="post-composer-heading">
-        <div>
-            <p class="eyebrow">Публикация</p>
-            <h2>Новое объявление</h2>
+<details class="post-composer" id="post-composer"{% if form.errors %} open{% endif %}>
+    <summary class="post-composer-summary">
+        <span class="post-composer-summary-copy">
+            <span class="eyebrow">Публикация</span>
+            <strong>Новое объявление</strong>
+        </span>
+        <i class="fa fa-chevron-down" aria-hidden="true"></i>
+    </summary>
+    <form method="post" id="server-post-form" aria-label="Опубликовать объявление">
+        {% csrf_token %}
+        <p class="post-composer-description">Сообщение появится в ленте сервера</p>
+        <div class="post-composer-fields">
+            <div class="post-field{% if form.title.errors %} has-error{% endif %}">
+                <label for="{{ form.title.id_for_label }}">Заголовок</label>
+                {{ form.title }}
+                {% if form.title.errors %}<ul class="field-errors" role="alert">{% for error in form.title.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}
+            </div>
+            <div class="post-field{% if form.post.errors %} has-error{% endif %}">
+                <label for="{{ form.post.id_for_label }}">Текст объявления</label>
+                {{ form.post }}
+                {% if form.post.errors %}<ul class="field-errors" role="alert">{% for error in form.post.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}
+            </div>
         </div>
-        <p>Сообщение появится в ленте сервера</p>
-    </div>
-    <div class="post-composer-fields">
-        <div class="post-field{% if form.title.errors %} has-error{% endif %}">
-            <label for="{{ form.title.id_for_label }}">Заголовок</label>
-            {{ form.title }}
-            {% if form.title.errors %}<ul class="field-errors" role="alert">{% for error in form.title.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}
-        </div>
-        <div class="post-field{% if form.post.errors %} has-error{% endif %}">
-            <label for="{{ form.post.id_for_label }}">Текст объявления</label>
-            {{ form.post }}
-            {% if form.post.errors %}<ul class="field-errors" role="alert">{% for error in form.post.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}
-        </div>
-    </div>
-    <button type="submit">{% fa5_icon 'paper-plane' 'fa' %}<span>Опубликовать</span></button>
-</form>
+        <button type="submit">{% fa5_icon 'paper-plane' 'fa' %}<span>Опубликовать</span></button>
+    </form>
+</details>
 
 <script>
 // Функция для получения CSRF-токена
