@@ -205,9 +205,8 @@ a { color: inherit; text-decoration: none; }
   background: var(--surface-raised);
   color: var(--text-soft);
   cursor: pointer;
-  transition: background-color 150ms ease, color 150ms ease, border-radius 180ms var(--ease-out), transform 150ms var(--ease-out);
+  transition: background-color 150ms ease, color 150ms ease;
 }
-.aside h3 button:hover { background: var(--accent-tint); color: var(--accent); border-radius: 0.8rem;}
 .aside h3 button:active { transform: scale(0.96); }
 .aside ul { display: flex; flex-direction: column; gap: 0.25rem; margin: 0; padding: 0; list-style: none; }
 .aside ul li { min-width: 0; border-radius: 0.7rem; }
@@ -777,7 +776,7 @@ body:has(#root) { min-height: 100dvh; overflow: hidden; }
   .aside .friends .friend-search-label { display: none; }
   .content { grid-row: 3; grid-column: 1; padding: 1.2rem 1rem; }
   .content:has(.search) { grid-template-rows: minmax(0,1fr) auto; gap: 1rem; padding: 1rem; }
-  .content:has(#messages-container) { grid-template-rows: auto minmax(0,1fr) auto; gap: 0.5rem; padding: max(0.65rem, env(safe-area-inset-bottom)); }
+  .content:has(#messages-container) { grid-template-rows: auto minmax(0,1fr) auto; gap: 0.5rem; padding: 0.65rem; }
   .content:has(#messages-container) #messages-container { padding: 0.7rem; }
   #message-form { padding: 0.65rem; }
   .composer-controls { grid-template-columns: minmax(0,1fr) 2.85rem; grid-template-rows: 2.85rem 2.85rem; gap: 0.45rem; }
