@@ -4,7 +4,7 @@ from unittest.mock import patch
 from asgiref.sync import async_to_sync
 from channels.db import database_sync_to_async
 from channels.testing import WebsocketCommunicator
-from django.test import TestCase, TransactionTestCase
+from django.test import Client, TestCase, TransactionTestCase
 from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
@@ -603,32 +603,49 @@ class MessageWebSocketDeliveryTests(TransactionTestCase):
             recipient=self.recipient,
             message='До изменения',
         )
-        communicator = WebsocketCommunicator(
+        sender_communicator = WebsocketCommunicator(
             application,
             f'/ws/dm/{self.recipient.pk}/',
             headers=[(b'cookie', f'sessionid={self.session_cookie}'.encode())],
         )
-        connected, _ = await communicator.connect()
-        self.assertTrue(connected)
+        recipient_client = Client()
+        await database_sync_to_async(recipient_client.force_login)(self.recipient)
+        recipient_session_cookie = recipient_client.cookies['sessionid'].value
+        recipient_communicator = WebsocketCommunicator(
+            application,
+            f'/ws/dm/{self.sender.pk}/',
+            headers=[(b'cookie', f'sessionid={recipient_session_cookie}'.encode())],
+        )
+        sender_connected, _ = await sender_communicator.connect()
+        recipient_connected, _ = await recipient_communicator.connect()
+        self.assertTrue(sender_connected)
+        self.assertTrue(recipient_connected)
 
         response = await database_sync_to_async(self.client.post)(
             reverse('website:edit_message', args=[self.recipient.pk, message.pk]),
             {'message': 'После изменения', 'expected_message': 'До изменения'},
         )
         self.assertEqual(response.status_code, 200)
-        edited_event = await communicator.receive_json_from(timeout=2)
-        self.assertEqual(edited_event['event'], 'message_edited')
-        self.assertEqual(edited_event['message']['id'], message.pk)
-        self.assertEqual(edited_event['message']['message'], 'После изменения')
+        sender_edit_event = await sender_communicator.receive_json_from(timeout=2)
+        recipient_edit_event = await recipient_communicator.receive_json_from(timeout=2)
+        for edited_event in (sender_edit_event, recipient_edit_event):
+            self.assertEqual(edited_event['event'], 'message_edited')
+            self.assertEqual(edited_event['message']['id'], message.pk)
+            self.assertEqual(edited_event['message']['message'], 'После изменения')
 
-        await communicator.send_json_to({
+        await sender_communicator.send_json_to({
             'action': 'send',
             'text': 'Сообщение после изменения',
             'client_message_id': str(uuid.uuid4()),
         })
         next_events = {
-            (await communicator.receive_json_from(timeout=2))['event'],
-            (await communicator.receive_json_from(timeout=2))['event'],
+            (await sender_communicator.receive_json_from(timeout=2))['event'],
+            (await sender_communicator.receive_json_from(timeout=2))['event'],
         }
         self.assertEqual(next_events, {'message_created', 'message_ack'})
-        await communicator.disconnect()
+        self.assertEqual(
+            (await recipient_communicator.receive_json_from(timeout=2))['event'],
+            'message_created',
+        )
+        await sender_communicator.disconnect()
+        await recipient_communicator.disconnect()

@@ -98,6 +98,9 @@ let activeContextTrigger = null;
 let activeEditMessage = null;
 let activeEditOriginalText = null;
 let isSavingEdit = false;
+const messageEditRevisions = new WeakMap();
+let visibleMessageSyncInProgress = false;
+let visibleMessageSyncRequested = false;
 textarea.addEventListener('keydown', event => {
     if (event.key === 'Escape' && activeEditMessage) {
         event.preventDefault();
@@ -322,7 +325,7 @@ function initWebSocket() {
         } else if (data.event === "message_deleted") {
             removeDeletedMessage(data.message_id);
         } else if (data.event === "message_edited") {
-            if (data.message) updateEditedMessage(data.message);
+            if (data.message && !updateEditedMessage(data.message)) reconcileVisibleMessages();
         } else if (data.event === "message_delete_error") {
             showToast({icon: 'error', title: 'Не удалось удалить сообщение', text: data.error || 'Попробуйте ещё раз'});
         } else if (data.event === "message_error") {
@@ -762,7 +765,8 @@ function cancelMessageEdit(force = false) {
 function updateEditedMessage(updatedMessage) {
     const element = Array.from(messagesDiv.querySelectorAll('.message[data-id]'))
         .find(item => item.dataset.id === String(updatedMessage.id));
-    if (!element) return;
+    if (!element) return false;
+    messageEditRevisions.set(element, (messageEditRevisions.get(element) || 0) + 1);
     element.dataset.messageText = updatedMessage.message || '';
     const textElement = element.querySelector('.message-text');
     if (textElement) textElement.textContent = updatedMessage.message || '';
@@ -774,6 +778,7 @@ function updateEditedMessage(updatedMessage) {
             text: 'Сохраните изменения после проверки или отмените редактирование.',
         });
     }
+    return true;
 }
 
 async function saveEditedMessage() {
@@ -886,12 +891,21 @@ async function confirmAndDeleteMessage(message) {
     }
 }
 
-async function reconcileVisibleMessages() {
-    const renderedMessages = Array.from(messagesDiv.querySelectorAll('.message[data-id]:not([data-temp="true"])'));
-    if (!renderedMessages.length) return;
+async function reconcileVisibleMessages(includeHistory = true) {
+    const allRenderedMessages = Array.from(messagesDiv.querySelectorAll('.message[data-id]:not([data-temp="true"])'));
+    if (!allRenderedMessages.length) return;
+    const renderedMessages = includeHistory ? allRenderedMessages : allRenderedMessages.slice(-100);
+    if (visibleMessageSyncInProgress) {
+        visibleMessageSyncRequested = true;
+        return;
+    }
+    visibleMessageSyncInProgress = true;
 
+    const initialRevisions = new Map(
+        renderedMessages.map(message => [message, messageEditRevisions.get(message) || 0])
+    );
     const oldestRenderedId = Math.min(...renderedMessages.map(message => Number(message.dataset.id)));
-    const visibleIds = new Set();
+    const latestMessages = new Map();
     let before = null;
 
     try {
@@ -903,17 +917,31 @@ async function reconcileVisibleMessages() {
 
             const data = await response.json();
             const batch = data.messages || [];
-            batch.forEach(message => visibleIds.add(String(message.id)));
-            if (!batch.length || Number(batch[0].id) <= oldestRenderedId || !data.next_before) break;
+            batch.forEach(message => latestMessages.set(String(message.id), message));
+            if (!includeHistory || !batch.length || Number(batch[0].id) <= oldestRenderedId || !data.next_before) break;
             before = data.next_before;
         }
 
         for (const message of renderedMessages) {
-            if (message.isConnected && !visibleIds.has(message.dataset.id)) message.remove();
+            if (!message.isConnected) continue;
+            const latestMessage = latestMessages.get(message.dataset.id);
+            if (latestMessage) {
+                if ((messageEditRevisions.get(message) || 0) === initialRevisions.get(message)) {
+                    updateEditedMessage(latestMessage);
+                }
+            } else {
+                removeDeletedMessage(message.dataset.id);
+            }
         }
         updateEmptyState();
     } catch (error) {
         console.warn('Не удалось синхронизировать историю чата:', error);
+    } finally {
+        visibleMessageSyncInProgress = false;
+        if (visibleMessageSyncRequested) {
+            visibleMessageSyncRequested = false;
+            reconcileVisibleMessages();
+        }
     }
 }
 
@@ -1074,10 +1102,18 @@ document.addEventListener('pointerdown', event => {
 
 messagesDiv.addEventListener('scroll', () => closeMessageContextMenu(false), {passive: true});
 window.addEventListener('resize', () => closeMessageContextMenu(false));
+window.addEventListener('focus', () => reconcileVisibleMessages());
+document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) reconcileVisibleMessages();
+});
+const messageSyncTimer = setInterval(() => {
+    if (!document.hidden) reconcileVisibleMessages(false);
+}, 15000);
 
 window.addEventListener('pagehide', () => {
     pageIsLeaving = true;
     if (reconnectTimer) clearTimeout(reconnectTimer);
+    clearInterval(messageSyncTimer);
     for (const entry of pendingMessages.values()) {
         if (entry.timer) clearTimeout(entry.timer);
     }
