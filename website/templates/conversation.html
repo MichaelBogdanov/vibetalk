@@ -29,6 +29,16 @@
         <input type="hidden" name="recipient" value="{{ friend.id }}" />
     </div>
 </form>
+<div id="message-context-menu" class="message-context-menu" role="menu" aria-label="Действия с сообщением" hidden>
+    <button class="message-context-menu-item" type="button" role="menuitem" data-menu-action="download" hidden>
+        <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false"><path d="M10 2.75v9m0 0 3.25-3.25M10 11.75 6.75 8.5M3.5 12.75v3.5h13v-3.5"/></svg>
+        <span>Скачать файл</span>
+    </button>
+    <button class="message-context-menu-item message-context-menu-delete" type="button" role="menuitem" data-menu-action="delete" hidden>
+        <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false"><path d="M7.5 3.5h5m-8 2h11m-9.5 0 .6 10h5.8l.6-10M8.5 8v5m3-5v5"/></svg>
+        <span>Удалить сообщение</span>
+    </button>
+</div>
 <script type="text/javascript">
 const textarea = document.getElementById('message');
 const sendButton = document.getElementById('send_message');
@@ -55,6 +65,10 @@ let fileInput = document.querySelector('.custom_file_upload');
 let fileInputLabel = document.querySelector('#filename');
 
 let messagesDiv = document.getElementById('messages-container');
+const messageContextMenu = document.getElementById('message-context-menu');
+const messageContextDownload = messageContextMenu.querySelector('[data-menu-action="download"]');
+const messageContextDelete = messageContextMenu.querySelector('[data-menu-action="delete"]');
+document.body.appendChild(messageContextMenu);
 let currentPeerId = `{{ friend.id }}`;
 let currentUserId = `{{ request.user.id }}`;
 let earliestMessageId = null;
@@ -67,6 +81,8 @@ let currentFileClientMessageId = null;
 let isUploadingFile = false;
 const pendingMessages = new Map();
 const pendingStorageKey = `vibetalk:dm:${currentUserId}:${currentPeerId}:pending`;
+let activeContextMessage = null;
+let activeContextTrigger = null;
 
 // ---------------------------------------------------
 // Логика кнопки выбора файла
@@ -508,8 +524,21 @@ function createMessageElement(msg) {
         div.className += " friend_message";
     }
     div.dataset.id = msg.id;
-    const deleteButton = String(msg.sender) === String(currentUserId)
-        ? '<button class="message-delete" type="button" aria-label="Удалить сообщение" title="Удалить сообщение"><svg viewBox="0 0 20 20" aria-hidden="true" focusable="false"><path d="M7.5 3.5h5m-8 2h11m-9.5 0 .6 10h5.8l.6-10M8.5 8v5m3-5v5"/></svg></button>'
+    div.dataset.sender = msg.sender;
+    div.tabIndex = -1;
+    const canDelete = String(msg.sender) === String(currentUserId);
+    if (msg.file) {
+        const downloadUrl = msg.file.download_url || msg.file.url;
+        if (downloadUrl) {
+            const parsedDownloadUrl = new URL(downloadUrl, window.location.href);
+            parsedDownloadUrl.searchParams.set('download', 'true');
+            div.dataset.downloadUrl = parsedDownloadUrl.href;
+        }
+        div.dataset.filename = msg.file.filename || '';
+    }
+    const hasContextActions = canDelete || Boolean(div.dataset.downloadUrl);
+    const contextTrigger = hasContextActions
+        ? '<button class="message-menu-trigger" type="button" aria-label="Открыть действия с сообщением" aria-haspopup="menu" aria-controls="message-context-menu" aria-expanded="false" title="Действия с сообщением"><svg viewBox="0 0 20 20" aria-hidden="true" focusable="false"><circle cx="4" cy="10" r="1.2"/><circle cx="10" cy="10" r="1.2"/><circle cx="16" cy="10" r="1.2"/></svg></button>'
         : '';
     
     let fileHtml = "";
@@ -517,7 +546,6 @@ function createMessageElement(msg) {
         const fileInfo = msg.file;
         const safeFilename = escapeHtml(fileInfo.filename);
         const safeFileUrl = escapeHtml(fileInfo.url);
-        const safeDownloadUrl = escapeHtml(fileInfo.download_url || fileInfo.url + '?download=true');
         
         if (fileInfo && fileInfo.is_image) {
             fileHtml = `
@@ -528,11 +556,6 @@ function createMessageElement(msg) {
                            data-caption="${safeFilename}">
                             <img src="${safeFileUrl}" class="message-image-preview-img" loading="lazy">
                         </a>
-                        <div class="image-actions">
-                            <a href="${safeDownloadUrl}" download>
-                                {% fa5_icon 'download' 'fa' %}
-                            </a>
-                        </div>
                     </div>
                 </div>
             `;
@@ -552,9 +575,7 @@ function createMessageElement(msg) {
                 <div class="message-file-container">
                     <div class="message-file-download">
                         <span class="file-icon">${icon}</span>
-                        <a href="${safeDownloadUrl}" download>
-                            ${safeFilename}
-                        </a>
+                        <span class="file-name">${safeFilename}</span>
                         <small>(${size})</small>
                     </div>
                 </div>
@@ -564,7 +585,7 @@ function createMessageElement(msg) {
 
     fileHtml = fileHtml.trim();
     
-    div.innerHTML = `<div class="message-header"><small class="message-time">${readableDate}</small>${deleteButton}</div><div class="message-content"><span class="message-sender">${escapeHtml(senderLabel)}:</span>${escapeHtml(msg.message || "")}${fileHtml}</div>`;
+    div.innerHTML = `<div class="message-header"><small class="message-time">${readableDate}</small>${contextTrigger}</div><div class="message-content"><span class="message-sender">${escapeHtml(senderLabel)}:</span>${escapeHtml(msg.message || "")}${fileHtml}</div>`;
     
     // Инициализируем Fancybox для изображений
     if (window.Fancybox) {
@@ -589,8 +610,126 @@ function updateEmptyState() {
 function removeDeletedMessage(messageId) {
     const element = Array.from(messagesDiv.querySelectorAll('.message[data-id]'))
         .find(item => item.dataset.id === String(messageId));
-    if (element) element.remove();
+    if (element) {
+        const focusWasInMessage = element.contains(document.activeElement) || activeContextMessage === element;
+        if (activeContextMessage === element) closeMessageContextMenu(false);
+        element.remove();
+        if (focusWasInMessage) document.getElementById('message').focus({preventScroll: true});
+    }
     updateEmptyState();
+}
+
+function closeMessageContextMenu(returnFocus = false) {
+    if (messageContextMenu.hidden) return;
+    const focusTarget = activeContextTrigger || activeContextMessage;
+    activeContextTrigger?.setAttribute('aria-expanded', 'false');
+    messageContextMenu.classList.remove('is-open', 'has-download');
+    messageContextMenu.hidden = true;
+    activeContextMessage = null;
+    activeContextTrigger = null;
+    if (returnFocus && focusTarget?.isConnected) focusTarget.focus({preventScroll: true});
+}
+
+function openMessageContextMenu(message, point = null, trigger = null) {
+    if (!message?.isConnected) return;
+    const canDelete = message.dataset.sender === String(currentUserId);
+    const canDownload = Boolean(message.dataset.downloadUrl);
+    if (!canDelete && !canDownload) {
+        closeMessageContextMenu(false);
+        return;
+    }
+    if (!messageContextMenu.hidden && activeContextMessage === message) {
+        closeMessageContextMenu(true);
+        return;
+    }
+
+    activeContextTrigger?.setAttribute('aria-expanded', 'false');
+    activeContextMessage = message;
+    activeContextTrigger = trigger || message.querySelector('.message-menu-trigger');
+    activeContextTrigger?.setAttribute('aria-expanded', 'true');
+    messageContextDownload.hidden = !canDownload;
+    messageContextDelete.hidden = !canDelete;
+    messageContextMenu.classList.toggle('has-download', canDownload);
+    messageContextMenu.hidden = false;
+    messageContextMenu.classList.remove('is-open');
+    messageContextMenu.style.left = '0px';
+    messageContextMenu.style.top = '0px';
+
+    requestAnimationFrame(() => {
+        if (messageContextMenu.hidden || !message.isConnected) return;
+        const menuRect = messageContextMenu.getBoundingClientRect();
+        const gap = 8;
+        const anchorRect = trigger?.getBoundingClientRect();
+        let left = point ? point.x : (anchorRect?.right ?? window.innerWidth - gap) - menuRect.width;
+        let top = point ? point.y + 10 : (anchorRect?.bottom ?? gap) + gap;
+
+        if (left + menuRect.width > window.innerWidth - gap) left = window.innerWidth - menuRect.width - gap;
+        if (left < gap) left = gap;
+        if (top + menuRect.height > window.innerHeight - gap) {
+            top = point
+                ? point.y - menuRect.height - 10
+                : anchorRect
+                    ? anchorRect.top - menuRect.height - gap
+                    : window.innerHeight - menuRect.height - gap;
+        }
+        top = Math.max(gap, Math.min(top, window.innerHeight - menuRect.height - gap));
+        messageContextMenu.style.left = `${left}px`;
+        messageContextMenu.style.top = `${top}px`;
+        messageContextMenu.classList.add('is-open');
+        messageContextMenu.querySelector('[role="menuitem"]:not([hidden])')?.focus({preventScroll: true});
+    });
+}
+
+async function confirmAndDeleteMessage(message) {
+    const confirmation = await Swal.fire({
+        icon: 'warning',
+        title: 'Удалить сообщение?',
+        text: message.querySelector('.message-file-container')
+            ? 'Сообщение исчезнет у обоих участников, а прикреплённый файл будет удалён.'
+            : 'Сообщение исчезнет у обоих участников.',
+        showCancelButton: true,
+        confirmButtonText: 'Удалить',
+        cancelButtonText: 'Отмена',
+        reverseButtons: true,
+        focusCancel: true,
+    });
+    if (!confirmation.isConfirmed || !message.isConnected) return;
+
+    const trigger = message.querySelector('.message-menu-trigger');
+    if (trigger) {
+        trigger.disabled = true;
+        trigger.setAttribute('aria-busy', 'true');
+        trigger.title = 'Удаляется…';
+    }
+    try {
+        const response = await fetch(
+            `/api/dm/${encodeURIComponent(currentPeerId)}/messages/${encodeURIComponent(message.dataset.id)}/delete/`,
+            {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+            }
+        );
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || data.status !== 'ok') {
+            throw new Error(data.error || 'Не удалось удалить сообщение. Попробуйте ещё раз.');
+        }
+        removeDeletedMessage(data.message_id);
+    } catch (error) {
+        showToast({
+            icon: 'error',
+            title: 'Не удалось удалить сообщение',
+            text: error.message || 'Проверьте соединение и попробуйте ещё раз',
+        });
+    } finally {
+        if (trigger?.isConnected) {
+            trigger.disabled = false;
+            trigger.removeAttribute('aria-busy');
+            trigger.title = 'Действия с сообщением';
+        }
+    }
 }
 
 async function reconcileVisibleMessages() {
@@ -676,64 +815,108 @@ restorePendingMessages();
 loadInitialMessages();
 initWebSocket();
 
-messagesDiv.addEventListener('click', async event => {
-    const deleteButton = event.target.closest('.message-delete');
-    if (deleteButton) {
-        const message = deleteButton.closest('.message[data-id]');
-        if (!message || deleteButton.disabled) return;
-
-        const confirmation = await Swal.fire({
-            icon: 'warning',
-            title: 'Удалить сообщение?',
-            text: message.querySelector('.message-file-container')
-                ? 'Сообщение исчезнет у обоих участников, а прикреплённый файл будет удалён.'
-                : 'Сообщение исчезнет у обоих участников.',
-            showCancelButton: true,
-            confirmButtonText: 'Удалить',
-            cancelButtonText: 'Отмена',
-            reverseButtons: true,
-            focusCancel: true,
-        });
-        if (!confirmation.isConfirmed || !message.isConnected) return;
-
-        deleteButton.disabled = true;
-        deleteButton.setAttribute('aria-busy', 'true');
-        deleteButton.title = 'Удаляется…';
-        try {
-            const response = await fetch(
-                `/api/dm/${encodeURIComponent(currentPeerId)}/messages/${encodeURIComponent(message.dataset.id)}/delete/`,
-                {
-                    method: 'POST',
-                    headers: {
-                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
-                        'X-Requested-With': 'XMLHttpRequest',
-                    },
-                }
-            );
-            const data = await response.json().catch(() => ({}));
-            if (!response.ok || data.status !== 'ok') {
-                throw new Error(data.error || 'Не удалось удалить сообщение. Попробуйте ещё раз.');
-            }
-            removeDeletedMessage(data.message_id);
-        } catch (error) {
-            deleteButton.disabled = false;
-            deleteButton.removeAttribute('aria-busy');
-            deleteButton.title = 'Удалить сообщение';
-            showToast({
-                icon: 'error',
-                title: 'Не удалось удалить сообщение',
-                text: error.message || 'Проверьте соединение и попробуйте ещё раз',
-            });
-        }
+messagesDiv.addEventListener('click', event => {
+    const target = event.target instanceof Element ? event.target : null;
+    const trigger = target?.closest('.message-menu-trigger');
+    if (trigger) {
+        event.preventDefault();
+        event.stopPropagation();
+        openMessageContextMenu(trigger.closest('.message[data-id]'), null, trigger);
         return;
     }
 
-    const button = event.target.closest('.message-retry');
-    if (!button) return;
-    const element = button.closest('[data-client-message-id]');
-    const entry = element && pendingMessages.get(element.dataset.clientMessageId);
-    if (entry) sendPendingMessage(entry, true);
+    const button = target?.closest('.message-retry');
+    if (button) {
+        const element = button.closest('[data-client-message-id]');
+        const entry = element && pendingMessages.get(element.dataset.clientMessageId);
+        if (entry) sendPendingMessage(entry, true);
+        return;
+    }
+
+    const message = target?.closest('.message[data-id]');
+    if (!message || target.closest('a, button')) return;
+    if (window.getSelection()?.toString()) return;
+    openMessageContextMenu(message, {x: event.clientX, y: event.clientY});
 });
+
+messagesDiv.addEventListener('contextmenu', event => {
+    const target = event.target instanceof Element ? event.target : null;
+    const message = target?.closest('.message[data-id]');
+    if (!message) return;
+    if (message.dataset.sender !== String(currentUserId) && !message.dataset.downloadUrl) return;
+    event.preventDefault();
+    openMessageContextMenu(message, {x: event.clientX, y: event.clientY});
+});
+
+messageContextMenu.addEventListener('click', event => {
+    const target = event.target instanceof Element ? event.target : null;
+    const item = target?.closest('[data-menu-action]');
+    if (!item || item.hidden || !activeContextMessage) return;
+    event.preventDefault();
+
+    const message = activeContextMessage;
+    if (item.dataset.menuAction === 'download') {
+        const link = document.createElement('a');
+        link.href = message.dataset.downloadUrl;
+        link.download = message.dataset.filename || '';
+        link.style.position = 'fixed';
+        link.style.left = '-10000px';
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        closeMessageContextMenu(true);
+    } else if (item.dataset.menuAction === 'delete') {
+        closeMessageContextMenu(true);
+        confirmAndDeleteMessage(message);
+    }
+});
+
+messageContextMenu.addEventListener('keydown', event => {
+    const items = Array.from(messageContextMenu.querySelectorAll('[role="menuitem"]:not([hidden]):not(:disabled)'));
+    const currentIndex = items.indexOf(document.activeElement);
+    let nextIndex = null;
+
+    if (event.key === 'Escape') {
+        event.preventDefault();
+        closeMessageContextMenu(true);
+    } else if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+        event.preventDefault();
+        const direction = event.key === 'ArrowDown' ? 1 : -1;
+        nextIndex = (currentIndex + direction + items.length) % items.length;
+        items[nextIndex]?.focus();
+    } else if (event.key === 'Home' || event.key === 'End') {
+        event.preventDefault();
+        nextIndex = event.key === 'Home' ? 0 : items.length - 1;
+        items[nextIndex]?.focus();
+    } else if (event.key === 'Tab') {
+        const focusableSelector = 'a[href], button:not(:disabled), input:not(:disabled), textarea:not(:disabled), select:not(:disabled), [tabindex]:not([tabindex="-1"])';
+        const focusable = Array.from(document.querySelectorAll(focusableSelector))
+            .filter(element => !messageContextMenu.contains(element) && !element.hidden && element.getClientRects().length);
+        const originIndex = focusable.indexOf(activeContextTrigger);
+        if (focusable.length && originIndex >= 0) {
+            event.preventDefault();
+            const direction = event.shiftKey ? -1 : 1;
+            const target = focusable[(originIndex + direction + focusable.length) % focusable.length];
+            closeMessageContextMenu(false);
+            target.focus();
+        } else {
+            closeMessageContextMenu(false);
+        }
+    }
+});
+
+document.addEventListener('pointerdown', event => {
+    if (messageContextMenu.hidden || messageContextMenu.contains(event.target)) return;
+    const target = event.target instanceof Element ? event.target : null;
+    const message = target?.closest('#messages-container .message[data-id]');
+    const isMenuTrigger = target?.closest('.message-menu-trigger');
+    const isMessageBody = message && !target.closest('a, button');
+    if (isMenuTrigger || isMessageBody) return;
+    closeMessageContextMenu(false);
+});
+
+messagesDiv.addEventListener('scroll', () => closeMessageContextMenu(false), {passive: true});
+window.addEventListener('resize', () => closeMessageContextMenu(false));
 
 window.addEventListener('pagehide', () => {
     pageIsLeaving = true;

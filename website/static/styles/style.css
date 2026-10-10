@@ -650,7 +650,7 @@ button:disabled { cursor: wait; opacity: 0.65; }
 }
 #messages-container .message-header { display: flex; align-items: center; justify-content: flex-end; }
 #messages-container .message.friend_message .message-header { justify-content: flex-start; }
-#messages-container .message-delete {
+#messages-container .message-menu-trigger {
   display: grid;
   width: 1.75rem;
   min-width: 1.75rem;
@@ -665,13 +665,71 @@ button:disabled { cursor: wait; opacity: 0.65; }
   background: transparent;
   box-shadow: none;
   color: var(--text-muted);
-  opacity: 0.78;
+  opacity: 0;
+  cursor: pointer;
+  transition: color 140ms ease, background-color 140ms ease, border-color 140ms ease, opacity 140ms ease, transform 140ms var(--ease-out);
 }
-#messages-container .message-delete svg { width: 0.9rem; height: 0.9rem; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.5; }
-#messages-container .message-delete:hover { border-color: rgba(255,141,155,.2); background: rgba(255,141,155,.1); box-shadow: none; color: #ff9aa6; opacity: 1; }
-#messages-container .message-delete:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; color: #ff9aa6; opacity: 1; }
-#messages-container .message-delete:active { transform: scale(0.94); }
-#messages-container .message-delete:disabled { cursor: wait; opacity: 0.55; }
+#messages-container .message-menu-trigger svg { width: 1rem; height: 1rem; fill: currentColor; }
+#messages-container .message:hover .message-menu-trigger,
+#messages-container .message:focus-within .message-menu-trigger,
+#messages-container .message-menu-trigger[aria-expanded="true"] { opacity: 1; }
+#messages-container .message-menu-trigger:hover { border-color: var(--border-strong); background: var(--accent-tint); box-shadow: none; color: var(--accent); opacity: 1; }
+#messages-container .message-menu-trigger:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; color: var(--accent); opacity: 1; }
+#messages-container .message-menu-trigger:active { transform: scale(0.94); }
+#messages-container .message-menu-trigger:disabled { cursor: wait; opacity: 0.55; }
+#messages-container .message-file-download { display: flex; max-width: min(100%, 24rem); align-items: baseline; gap: 0.45rem; margin-top: 0.35rem; color: var(--text-soft); }
+#messages-container .message-file-download .file-name { min-width: 0; overflow-wrap: anywhere; }
+#messages-container .message-file-download small { flex: 0 0 auto; }
+.message-context-menu[hidden] { display: none !important; }
+.message-context-menu {
+  position: fixed;
+  z-index: 1200;
+  display: flex;
+  width: max-content;
+  min-width: 13rem;
+  max-width: min(18rem, calc(100vw - 1rem));
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 0.35rem;
+  border: 1px solid var(--border-strong);
+  border-radius: 0.9rem;
+  background: var(--surface-raised);
+  box-shadow: 0 1rem 2.5rem rgba(0,0,0,.38), 0 0.2rem 0.65rem rgba(0,0,0,.2);
+  opacity: 0;
+  transform: translateY(-0.25rem) scale(.98);
+  transform-origin: top right;
+  transition: opacity 130ms ease, transform 130ms var(--ease-out);
+}
+.message-context-menu.is-open { opacity: 1; transform: translateY(0) scale(1); }
+.message-context-menu-item {
+  display: flex;
+  width: 100%;
+  min-height: 2.55rem;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.55rem 0.7rem;
+  border: 0;
+  border-radius: 0.62rem;
+  background: transparent;
+  box-shadow: none;
+  color: var(--text);
+  cursor: pointer;
+  font-size: 0.84rem;
+  font-weight: 600;
+  text-align: left;
+  transition: color 120ms ease, background-color 120ms ease;
+}
+.message-context-menu-item[hidden] { display: none !important; }
+.message-context-menu-item:hover,
+.message-context-menu-item:focus-visible { background: var(--accent-tint); box-shadow: none; color: var(--accent); outline: none; }
+.message-context-menu-item:focus-visible { box-shadow: inset 0 0 0 1px var(--accent); }
+.message-context-menu-item svg { width: 1rem; height: 1rem; flex: 0 0 1rem; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.7; }
+.message-context-menu-delete { color: #ff9aa6; }
+.message-context-menu-delete:hover,
+.message-context-menu-delete:focus-visible { background: rgba(255,141,155,.1); color: #ffb0b9; }
+@media (hover: none), (pointer: coarse) {
+  #messages-container .message-menu-trigger { opacity: 1; }
+}
 #messages-container .message small { color: var(--text-muted); font-size: 0.68rem; }
 #messages-container .message-content { color: var(--text); line-height: 1.5; overflow-wrap: anywhere; }
 #messages-container .message-content .message-image-preview { position: relative; }
@@ -841,6 +899,7 @@ body:has(#root) { min-height: 100dvh; overflow: hidden; }
 }
 @media (prefers-reduced-motion: reduce) {
   * { scroll-behavior: auto !important; }
+  .message-menu-trigger, .message-context-menu, .message-context-menu-item { transition: none !important; }
   .my_servers li, .my_servers li::before, .my_servers .logout-link, .aside h3 button,
   button, .button, .server-card, .conversation-call, #message-form .custom_file_upload {
     transition-duration: 120ms !important;
@@ -855,30 +914,6 @@ body:has(#root) { min-height: 100dvh; overflow: hidden; }
 @media (prefers-contrast: more) {
   :root { --border: rgba(255,255,255,.3); --border-strong: rgba(255,255,255,.5); --text-soft: #c6c8d5; }
   .content, .aside, .my_servers { background-image: none; }
-}
-.image-actions {
-  display: flex;
-  gap: .3rem;
-  align-items: center;
-  justify-content: flex-end;
-  position: absolute;
-  bottom: 5%;
-  right: 5%;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: calc(0.9rem / 1.5);
-}
-.image-actions a {
-  width: calc(2.65rem / 1.5);
-  height: calc(2.65rem / 1.5);
-  color: var(--accent);
-  transition: background-color 150ms ease, transform 150ms var(--ease-out);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-.image-actions a:hover, .image-actions a:focus-within {
-  background: var(--accent-tint);
 }
 ul.rooms > li > a {
   grid-template-rows: 1fr;
