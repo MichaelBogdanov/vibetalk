@@ -10,7 +10,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 from django.utils import timezone
 from .consumers import PrivateChatConsumer
-from .models import CustomUser, Friendship, Message
+from .models import CustomUser, Friendship, Message, ZegoCloudConfiguration
 from .validators import validate_password, validate_email
 from core.asgi import application
 
@@ -165,6 +165,36 @@ class FriendInvitationTests(TestCase):
         Friendship.objects.create(user_from=owner, user_to=inviter)
 
         self.assertEqual(owner.get_received_invitations(), [])
+
+
+class PrivateCallExitTests(TestCase):
+    def setUp(self):
+        self.user = CustomUser.objects.create_user(
+            email='caller@example.com',
+            password='ValidP@ssw0rd',
+            first_name='Caller',
+            last_name='User',
+        )
+        self.peer = CustomUser.objects.create_user(
+            email='callee@example.com',
+            password='ValidP@ssw0rd',
+            first_name='Callee',
+            last_name='User',
+        )
+        Friendship.objects.create(user_from=self.user, user_to=self.peer)
+        Friendship.objects.create(user_from=self.peer, user_to=self.user)
+        ZegoCloudConfiguration.objects.create(app_id='12345', server_secret='test-secret')
+        self.client.force_login(self.user)
+
+    @patch('website.views.generate_token04', return_value='test-token')
+    def test_private_call_leave_redirect_returns_to_conversation_page(self, generate_token):
+        response = self.client.get(reverse('website:conversation', args=[self.peer.pk]) + 'talk/')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.context['call_config']['logout_redirect'],
+            reverse('website:conversation', args=[self.peer.pk]),
+        )
 
 
 class MessageIdempotencyTests(TransactionTestCase):

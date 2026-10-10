@@ -714,7 +714,7 @@ def room(request, room_id=None, user_id=None):
         if not _are_mutual_friends(request.user, peer):
             return HttpResponse('Вы не можете присоединиться к данному разговору')
         call_room_id = _dm_group_name(request.user.id, peer.id)
-        logout_redirect = f'/conversation/{peer.id}/talk/'
+        logout_redirect = reverse('website:conversation', args=[peer.id])
         title = f"Разговор: {peer}"
 
     try:
