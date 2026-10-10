@@ -221,10 +221,16 @@ def messages_paginated(request, peer_id):
         file_info = None
         if m.uploaded_file:
             mime_type, encoding = mimetypes.guess_type(m.uploaded_file.name)
+            try:
+                file_size = m.uploaded_file.size
+            except OSError:
+                # A missing attachment should not prevent the rest of the
+                # conversation history from loading.
+                file_size = None
             file_info = {
                 'url': reverse('website:get_message_file', args=[m.id]),
                 'filename': m.uploaded_file.name.split('/')[-1],
-                'size': m.uploaded_file.size,
+                'size': file_size,
                 'is_image': mime_type in INLINE_IMAGE_MIME_TYPES
             }
         

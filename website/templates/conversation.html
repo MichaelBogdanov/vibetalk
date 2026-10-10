@@ -529,7 +529,9 @@ function createMessageElement(msg) {
                 </div>
             `;
         } else if (fileInfo) {
-            const size = formatFileSize(fileInfo.size);
+            const size = Number.isFinite(fileInfo.size)
+                ? formatFileSize(fileInfo.size)
+                : 'размер недоступен';
             const fileExt = String(fileInfo.filename).split(".").pop().toLowerCase();
             const icons = {
                 pdf: "📕", doc: "📝", docx: "📝", xls: "📊", xlsx: "📊",
