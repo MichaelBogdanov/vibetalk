@@ -740,6 +740,17 @@ button:disabled { cursor: wait; opacity: 0.65; }
 #messages-container .message-status { display: block; margin-top: 0.2rem; color: var(--text-muted); font-size: 0.7rem; }
 #messages-container .message-retry { min-height: 1.9rem; margin: 0.35rem 0 0; padding: 0.35rem 0.6rem; font-size: 0.74rem; }
 #message-form { display: grid; gap: 0.5rem; padding: 0.75rem; border-radius: 1rem; }
+#message-edit-status[hidden] { display: none !important; }
+#message-edit-status { display: flex; min-width: 0; align-items: center; gap: 0.65rem; color: var(--accent); font-size: 0.76rem; font-weight: 650; }
+#message-edit-status button { min-height: 2rem; padding: 0.35rem 0.65rem; border: 1px solid var(--border); border-radius: 0.6rem; background: var(--surface-raised); color: var(--text-soft); font-size: 0.72rem; }
+#message-edit-status button:hover { border-color: var(--border-strong); background: var(--accent-tint); color: var(--accent); }
+#message-edit-status button:disabled { cursor: wait; opacity: 0.6; }
+#message-form.is-editing #filename,
+#message-form.is-editing .composer-hint,
+#message-form.is-editing .custom_file_upload { display: none; }
+#message-form.is-editing #send_message { grid-row: 1 / span 2; }
+#message-form #send_message [hidden] { display: none !important; }
+#message-form #send_message .save-icon svg { width: 1.15rem; height: 1.15rem; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.6; }
 .composer-meta { display: flex; min-height: 1.1rem; align-items: center; justify-content: space-between; gap: 1rem; }
 #filename { min-width: 0; margin: 0; overflow: hidden; color: var(--text-soft); font-size: 0.75rem; text-overflow: ellipsis; white-space: nowrap; }
 .composer-hint { margin: 0; color: var(--text-muted); font-size: 0.69rem; text-align: right; }
@@ -859,6 +870,7 @@ body:has(#root) { min-height: 100dvh; overflow: hidden; }
   .content:has(#messages-container) { grid-template-rows: auto minmax(0,1fr) auto; gap: 0.5rem; padding: 0.65rem; }
   .content:has(#messages-container) #messages-container { padding: 0.7rem; }
   #message-form { padding: 0.65rem; }
+  #message-form.is-editing .composer-meta { display: flex !important; }
   .composer-controls { grid-template-columns: minmax(0,1fr) 2.85rem; grid-template-rows: 2.85rem 2.85rem; gap: 0.45rem; }
   #message-form textarea { height: 6.15rem; max-height: 6.15rem; padding: 0.7rem; }
   #message-form .custom_file_upload, #message-form #send_message { width: 2.85rem; min-width: 2.85rem; height: 2.85rem; min-height: 2.85rem; }

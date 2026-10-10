@@ -413,6 +413,104 @@ class MessageDeleteTests(TransactionTestCase):
         self.assertEqual(self.message.uploaded_file.name, 'chat_files/attachment.txt')
 
 
+class MessageEditTests(TransactionTestCase):
+    def setUp(self):
+        self.sender = CustomUser.objects.create_user(
+            email='edit-sender@example.com',
+            password='ValidP@ssw0rd',
+            first_name='Sender',
+            last_name='User',
+        )
+        self.recipient = CustomUser.objects.create_user(
+            email='edit-recipient@example.com',
+            password='ValidP@ssw0rd',
+            first_name='Recipient',
+            last_name='User',
+        )
+        Friendship.objects.create(user_from=self.sender, user_to=self.recipient)
+        Friendship.objects.create(user_from=self.recipient, user_to=self.sender)
+        self.client.force_login(self.sender)
+        self.message = Message.objects.create(
+            sender=self.sender,
+            recipient=self.recipient,
+            message='Исходный текст',
+        )
+        self.edit_url = reverse(
+            'website:edit_message',
+            args=[self.recipient.pk, self.message.pk],
+        )
+
+    def test_sender_can_edit_text_and_history_returns_updated_value(self):
+        response = self.client.post(self.edit_url, {
+            'message': '  Обновлённый текст  ',
+            'expected_message': 'Исходный текст',
+        })
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['message']['message'], 'Обновлённый текст')
+        self.message.refresh_from_db()
+        self.assertEqual(self.message.message, 'Обновлённый текст')
+        history = self.client.get(
+            reverse('website:messages_paginated', args=[self.recipient.pk])
+        )
+        self.assertEqual(history.json()['messages'][0]['message'], 'Обновлённый текст')
+
+    def test_stale_edit_is_rejected_without_overwriting_newer_text(self):
+        self.message.message = 'Новое значение'
+        self.message.save(update_fields=['message'])
+
+        response = self.client.post(self.edit_url, {
+            'message': 'Устаревшее значение',
+            'expected_message': 'Исходный текст',
+        })
+
+        self.assertEqual(response.status_code, 409)
+        self.message.refresh_from_db()
+        self.assertEqual(self.message.message, 'Новое значение')
+
+    def test_cannot_edit_another_participants_message(self):
+        incoming = Message.objects.create(
+            sender=self.recipient,
+            recipient=self.sender,
+            message='Чужое сообщение',
+        )
+        url = reverse('website:edit_message', args=[self.recipient.pk, incoming.pk])
+
+        response = self.client.post(url, {
+            'message': 'Подмена',
+            'expected_message': 'Чужое сообщение',
+        })
+
+        self.assertEqual(response.status_code, 404)
+        incoming.refresh_from_db()
+        self.assertEqual(incoming.message, 'Чужое сообщение')
+
+    def test_text_cannot_be_cleared_when_message_has_no_file(self):
+        response = self.client.post(self.edit_url, {
+            'message': '   ',
+            'expected_message': 'Исходный текст',
+        })
+
+        self.assertEqual(response.status_code, 400)
+        self.message.refresh_from_db()
+        self.assertEqual(self.message.message, 'Исходный текст')
+
+    def test_editing_caption_keeps_existing_attachment(self):
+        self.message.uploaded_file = 'chat_files/edit-attachment.txt'
+        self.message.message = 'Подпись'
+        self.message.save(update_fields=['uploaded_file', 'message'])
+
+        response = self.client.post(self.edit_url, {
+            'message': '',
+            'expected_message': 'Подпись',
+        })
+
+        self.assertEqual(response.status_code, 200)
+        self.message.refresh_from_db()
+        self.assertEqual(self.message.message, '')
+        self.assertEqual(self.message.uploaded_file.name, 'chat_files/edit-attachment.txt')
+
+
 class MessageWebSocketDeliveryTests(TransactionTestCase):
     def setUp(self):
         self.sender = CustomUser.objects.create_user(
@@ -490,6 +588,42 @@ class MessageWebSocketDeliveryTests(TransactionTestCase):
         await communicator.send_json_to({
             'action': 'send',
             'text': 'Сообщение после удаления',
+            'client_message_id': str(uuid.uuid4()),
+        })
+        next_events = {
+            (await communicator.receive_json_from(timeout=2))['event'],
+            (await communicator.receive_json_from(timeout=2))['event'],
+        }
+        self.assertEqual(next_events, {'message_created', 'message_ack'})
+        await communicator.disconnect()
+
+    async def test_http_edit_broadcasts_updated_message_without_closing_websocket(self):
+        message = await database_sync_to_async(Message.objects.create)(
+            sender=self.sender,
+            recipient=self.recipient,
+            message='До изменения',
+        )
+        communicator = WebsocketCommunicator(
+            application,
+            f'/ws/dm/{self.recipient.pk}/',
+            headers=[(b'cookie', f'sessionid={self.session_cookie}'.encode())],
+        )
+        connected, _ = await communicator.connect()
+        self.assertTrue(connected)
+
+        response = await database_sync_to_async(self.client.post)(
+            reverse('website:edit_message', args=[self.recipient.pk, message.pk]),
+            {'message': 'После изменения', 'expected_message': 'До изменения'},
+        )
+        self.assertEqual(response.status_code, 200)
+        edited_event = await communicator.receive_json_from(timeout=2)
+        self.assertEqual(edited_event['event'], 'message_edited')
+        self.assertEqual(edited_event['message']['id'], message.pk)
+        self.assertEqual(edited_event['message']['message'], 'После изменения')
+
+        await communicator.send_json_to({
+            'action': 'send',
+            'text': 'Сообщение после изменения',
             'client_message_id': str(uuid.uuid4()),
         })
         next_events = {

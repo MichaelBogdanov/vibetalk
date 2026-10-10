@@ -19,6 +19,7 @@ urlpatterns = [
     path('get_messages/<int:user_id>/', get_messages, name='get_messages'),
     path('api/dm/<int:peer_id>/messages/', messages_paginated, name='messages_paginated'),
     path('api/dm/<int:peer_id>/messages/<int:message_id>/delete/', delete_message, name='delete_message'),
+    path('api/dm/<int:peer_id>/messages/<int:message_id>/edit/', edit_message, name='edit_message'),
     path('message/file/<int:message_id>/', get_message_file, name='get_message_file'),
     path('message/file/<int:message_id>/info/', get_file_info, name='get_file_info'),
     path('server/<int:server_id>/', server, name="server"),

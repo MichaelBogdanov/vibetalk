@@ -18,13 +18,20 @@
     <div class="composer-meta">
         <p id="filename" aria-live="polite"></p>
         <p class="composer-hint">Enter - отправить · Shift + Enter - новая строка</p>
+        <div id="message-edit-status" role="status" hidden>
+            <span>Редактирование сообщения</span>
+            <button id="cancel-message-edit" type="button">Отмена</button>
+        </div>
     </div>
     <div class="composer-controls">
         <textarea id="message" name="message" rows="2" maxlength="8192" placeholder="Введите ваше сообщение" aria-label="Текст сообщения"></textarea>
         <label for="file_upload" class="custom_file_upload" aria-label="Прикрепить файл" title="Прикрепить файл">
             {% fa5_icon 'plus' 'fa' %}
         </label>
-        <button id="send_message" type="submit" aria-label="Отправить сообщение" title="Отправить сообщение"><span>{% fa5_icon 'arrow-right' 'fa' %}</span></button>
+        <button id="send_message" type="submit" aria-label="Отправить сообщение" title="Отправить сообщение">
+            <span class="send-icon">{% fa5_icon 'arrow-right' 'fa' %}</span>
+            <span class="save-icon" hidden><svg viewBox="0 0 20 20" aria-hidden="true" focusable="false"><path d="M4 3.5h10l2.5 2.5v10.5H4zM7 3.5v5h6v-5M7 16.5v-5h7v5"/></svg></span>
+        </button>
         <input type="file" name="file_upload" value="" id="file_upload">
         <input type="hidden" name="recipient" value="{{ friend.id }}" />
     </div>
@@ -33,6 +40,10 @@
     <button class="message-context-menu-item" type="button" role="menuitem" data-menu-action="download" hidden>
         <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false"><path d="M10 2.75v9m0 0 3.25-3.25M10 11.75 6.75 8.5M3.5 12.75v3.5h13v-3.5"/></svg>
         <span>Скачать файл</span>
+    </button>
+    <button class="message-context-menu-item" type="button" role="menuitem" data-menu-action="edit" hidden>
+        <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false"><path d="m13.5 3.5 3 3M4 16l3.5-.7L16 6.8 13.2 4 4.7 12.5 4 16Z"/></svg>
+        <span>Редактировать</span>
     </button>
     <button class="message-context-menu-item message-context-menu-delete" type="button" role="menuitem" data-menu-action="delete" hidden>
         <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false"><path d="M7.5 3.5h5m-8 2h11m-9.5 0 .6 10h5.8l.6-10M8.5 8v5m3-5v5"/></svg>
@@ -67,6 +78,7 @@ let fileInputLabel = document.querySelector('#filename');
 let messagesDiv = document.getElementById('messages-container');
 const messageContextMenu = document.getElementById('message-context-menu');
 const messageContextDownload = messageContextMenu.querySelector('[data-menu-action="download"]');
+const messageContextEdit = messageContextMenu.querySelector('[data-menu-action="edit"]');
 const messageContextDelete = messageContextMenu.querySelector('[data-menu-action="delete"]');
 document.body.appendChild(messageContextMenu);
 let currentPeerId = `{{ friend.id }}`;
@@ -83,6 +95,15 @@ const pendingMessages = new Map();
 const pendingStorageKey = `vibetalk:dm:${currentUserId}:${currentPeerId}:pending`;
 let activeContextMessage = null;
 let activeContextTrigger = null;
+let activeEditMessage = null;
+let activeEditOriginalText = null;
+let isSavingEdit = false;
+textarea.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && activeEditMessage) {
+        event.preventDefault();
+        cancelMessageEdit();
+    }
+});
 
 // ---------------------------------------------------
 // Логика кнопки выбора файла
@@ -300,6 +321,8 @@ function initWebSocket() {
             if (data.message) handleCreatedMessage(data.message);
         } else if (data.event === "message_deleted") {
             removeDeletedMessage(data.message_id);
+        } else if (data.event === "message_edited") {
+            if (data.message) updateEditedMessage(data.message);
         } else if (data.event === "message_delete_error") {
             showToast({icon: 'error', title: 'Не удалось удалить сообщение', text: data.error || 'Попробуйте ещё раз'});
         } else if (data.event === "message_error") {
@@ -417,6 +440,11 @@ function setPendingStatus(entry, text, showRetry = false) {
 // ======================================================
 document.getElementById('message-form').addEventListener('submit', async function(e) {
     e.preventDefault();
+    if (isSavingEdit) return;
+    if (activeEditMessage) {
+        await saveEditedMessage();
+        return;
+    }
     if (isUploadingFile) return;
     
     const messageInput = document.getElementById('message');
@@ -525,6 +553,7 @@ function createMessageElement(msg) {
     }
     div.dataset.id = msg.id;
     div.dataset.sender = msg.sender;
+    div.dataset.messageText = msg.message || '';
     div.tabIndex = -1;
     const canDelete = String(msg.sender) === String(currentUserId);
     if (msg.file) {
@@ -585,7 +614,7 @@ function createMessageElement(msg) {
 
     fileHtml = fileHtml.trim();
     
-    div.innerHTML = `<div class="message-header"><small class="message-time">${readableDate}</small>${contextTrigger}</div><div class="message-content"><span class="message-sender">${escapeHtml(senderLabel)}:</span>${escapeHtml(msg.message || "")}${fileHtml}</div>`;
+    div.innerHTML = `<div class="message-header"><small class="message-time">${readableDate}</small>${contextTrigger}</div><div class="message-content"><span class="message-sender">${escapeHtml(senderLabel)}:</span><span class="message-text">${escapeHtml(msg.message || "")}</span>${fileHtml}</div>`;
     
     // Инициализируем Fancybox для изображений
     if (window.Fancybox) {
@@ -611,6 +640,7 @@ function removeDeletedMessage(messageId) {
     const element = Array.from(messagesDiv.querySelectorAll('.message[data-id]'))
         .find(item => item.dataset.id === String(messageId));
     if (element) {
+        if (activeEditMessage === element) cancelMessageEdit(true);
         const focusWasInMessage = element.contains(document.activeElement) || activeContextMessage === element;
         if (activeContextMessage === element) closeMessageContextMenu(false);
         element.remove();
@@ -648,6 +678,7 @@ function openMessageContextMenu(message, point = null, trigger = null) {
     activeContextTrigger = trigger || message.querySelector('.message-menu-trigger');
     activeContextTrigger?.setAttribute('aria-expanded', 'true');
     messageContextDownload.hidden = !canDownload;
+    messageContextEdit.hidden = !canDelete;
     messageContextDelete.hidden = !canDelete;
     messageContextMenu.classList.toggle('has-download', canDownload);
     messageContextMenu.hidden = false;
@@ -678,6 +709,129 @@ function openMessageContextMenu(message, point = null, trigger = null) {
         messageContextMenu.classList.add('is-open');
         messageContextMenu.querySelector('[role="menuitem"]:not([hidden])')?.focus({preventScroll: true});
     });
+}
+
+function beginMessageEdit(message) {
+    if (!message?.isConnected) return;
+    const messageForm = document.getElementById('message-form');
+    const fileInput = document.getElementById('file_upload');
+    if (textarea.value || fileInput.files.length) {
+        closeMessageContextMenu(true);
+        showToast({
+            icon: 'info',
+            title: 'Сначала завершите черновик',
+            text: 'Отправьте или очистите текст и выбранный файл, затем повторите редактирование.',
+        });
+        return;
+    }
+
+    activeEditMessage = message;
+    activeEditOriginalText = message.dataset.messageText || '';
+    textarea.value = activeEditOriginalText;
+    textarea.placeholder = 'Измените текст сообщения';
+    textarea.setAttribute('aria-label', 'Изменить текст сообщения');
+    messageForm.classList.add('is-editing');
+    messageForm.setAttribute('aria-label', 'Редактирование сообщения');
+    document.getElementById('message-edit-status').hidden = false;
+    document.querySelector('#send_message .send-icon').hidden = true;
+    document.querySelector('#send_message .save-icon').hidden = false;
+    sendButton.setAttribute('aria-label', 'Сохранить изменения');
+    sendButton.title = 'Сохранить изменения';
+    closeMessageContextMenu(true);
+    textarea.focus();
+    textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+}
+
+function cancelMessageEdit(force = false) {
+    if (!activeEditMessage || (isSavingEdit && !force)) return;
+    activeEditMessage = null;
+    activeEditOriginalText = null;
+    textarea.value = '';
+    textarea.placeholder = 'Введите ваше сообщение';
+    textarea.setAttribute('aria-label', 'Текст сообщения');
+    document.getElementById('message-form').classList.remove('is-editing');
+    document.getElementById('message-form').setAttribute('aria-label', 'Новое сообщение');
+    document.getElementById('message-edit-status').hidden = true;
+    document.querySelector('#send_message .send-icon').hidden = false;
+    document.querySelector('#send_message .save-icon').hidden = true;
+    sendButton.setAttribute('aria-label', 'Отправить сообщение');
+    sendButton.title = 'Отправить сообщение';
+    textarea.focus();
+}
+
+function updateEditedMessage(updatedMessage) {
+    const element = Array.from(messagesDiv.querySelectorAll('.message[data-id]'))
+        .find(item => item.dataset.id === String(updatedMessage.id));
+    if (!element) return;
+    element.dataset.messageText = updatedMessage.message || '';
+    const textElement = element.querySelector('.message-text');
+    if (textElement) textElement.textContent = updatedMessage.message || '';
+
+    if (activeEditMessage === element && !isSavingEdit && activeEditOriginalText !== updatedMessage.message) {
+        showToast({
+            icon: 'info',
+            title: 'Сообщение изменилось',
+            text: 'Сохраните изменения после проверки или отмените редактирование.',
+        });
+    }
+}
+
+async function saveEditedMessage() {
+    if (!activeEditMessage || isSavingEdit) return;
+    const message = activeEditMessage;
+    const text = textarea.value.trim();
+    if (!text && !message.querySelector('.message-file-container')) {
+        showToast({icon: 'warning', title: 'Пустое сообщение', text: 'Добавьте текст или отмените редактирование.'});
+        textarea.focus();
+        return;
+    }
+
+    isSavingEdit = true;
+    sendButton.disabled = true;
+    sendButton.setAttribute('aria-busy', 'true');
+    textarea.readOnly = true;
+    document.getElementById('cancel-message-edit').disabled = true;
+    try {
+        const body = new URLSearchParams({
+            message: text,
+            expected_message: activeEditOriginalText ?? '',
+        });
+        const response = await fetch(
+            `/api/dm/${encodeURIComponent(currentPeerId)}/messages/${encodeURIComponent(message.dataset.id)}/edit/`,
+            {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                body,
+            }
+        );
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || data.status !== 'ok' || !data.message) {
+            if (response.status === 409 && typeof data.message === 'string') {
+                updateEditedMessage({id: message.dataset.id, message: data.message});
+            }
+            throw new Error(data.error || 'Не удалось сохранить изменения. Попробуйте ещё раз.');
+        }
+        updateEditedMessage(data.message);
+        isSavingEdit = false;
+        cancelMessageEdit();
+        showToast({icon: 'success', title: 'Изменения сохранены'});
+    } catch (error) {
+        showToast({
+            icon: 'error',
+            title: 'Не удалось сохранить изменения',
+            text: error.message || 'Проверьте соединение и попробуйте ещё раз',
+        });
+    } finally {
+        isSavingEdit = false;
+        sendButton.disabled = false;
+        sendButton.removeAttribute('aria-busy');
+        textarea.readOnly = false;
+        document.getElementById('cancel-message-edit').disabled = false;
+    }
 }
 
 async function confirmAndDeleteMessage(message) {
@@ -814,6 +968,7 @@ async function renderMessageDOM(msg, appendToBottom = true) {
 restorePendingMessages();
 loadInitialMessages();
 initWebSocket();
+document.getElementById('cancel-message-edit').addEventListener('click', () => cancelMessageEdit());
 
 messagesDiv.addEventListener('click', event => {
     const target = event.target instanceof Element ? event.target : null;
@@ -865,6 +1020,8 @@ messageContextMenu.addEventListener('click', event => {
         link.click();
         link.remove();
         closeMessageContextMenu(true);
+    } else if (item.dataset.menuAction === 'edit') {
+        beginMessageEdit(message);
     } else if (item.dataset.menuAction === 'delete') {
         closeMessageContextMenu(true);
         confirmAndDeleteMessage(message);

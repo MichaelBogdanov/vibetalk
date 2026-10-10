@@ -307,6 +307,87 @@ def delete_message(request, peer_id, message_id):
 
     return JsonResponse({'status': 'ok', 'message_id': message.id})
 
+
+@login_required
+def edit_message(request, peer_id, message_id):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Метод не поддерживается'}, status=405)
+
+    try:
+        peer = CustomUser.objects.get(pk=peer_id)
+    except CustomUser.DoesNotExist:
+        return JsonResponse({'error': 'Пользователь не найден'}, status=404)
+
+    if not _are_mutual_friends(request.user, peer):
+        return JsonResponse({'error': 'Нет доступа к переписке'}, status=403)
+
+    new_text = request.POST.get('message')
+    expected_text = request.POST.get('expected_message')
+    if new_text is None or expected_text is None:
+        return JsonResponse({'error': 'Не удалось получить текст сообщения'}, status=400)
+    new_text = new_text.strip()
+    if len(new_text) > 8192 or len(expected_text) > 8192:
+        return JsonResponse({'error': 'Сообщение слишком длинное'}, status=400)
+
+    try:
+        with transaction.atomic():
+            try:
+                message = Message.objects.select_for_update().get(
+                    pk=message_id,
+                    sender=request.user,
+                    recipient=peer,
+                    is_deleted=False,
+                )
+            except Message.DoesNotExist:
+                return JsonResponse({'error': 'Сообщение не найдено'}, status=404)
+
+            if (message.message or '') != expected_text:
+                return JsonResponse({
+                    'error': 'Сообщение уже изменилось. Закройте режим редактирования и откройте его снова.',
+                    'message': message.message,
+                }, status=409)
+            if not new_text and not message.uploaded_file:
+                return JsonResponse({'error': 'Текст сообщения не может быть пустым'}, status=400)
+
+            changed = (message.message or '') != new_text
+            if changed:
+                message.message = new_text
+                message.save(update_fields=['message'])
+    except Exception:
+        logger.exception('Не удалось изменить сообщение %s', message_id)
+        return JsonResponse({'error': 'Не удалось сохранить изменения'}, status=500)
+
+    if changed:
+        try:
+            from asgiref.sync import async_to_sync
+            from channels.layers import get_channel_layer
+
+            async_to_sync(get_channel_layer().group_send)(
+                _dm_group_name(request.user.id, peer.id),
+                {
+                    'type': 'chat.event',
+                    'event': 'message_edited',
+                    'message': {
+                        'id': message.id,
+                        'sender': message.sender_id,
+                        'message': message.message,
+                    },
+                },
+            )
+        except Exception:
+            # Сохранение уже завершено; история отдаст новое значение при следующей загрузке.
+            logger.exception('Не удалось разослать событие изменения сообщения %s', message.id)
+
+    return JsonResponse({
+        'status': 'ok',
+        'changed': changed,
+        'message': {
+            'id': message.id,
+            'sender': message.sender_id,
+            'message': message.message,
+        },
+    })
+
 @login_required
 def get_messages(request, user_id):
     try:
