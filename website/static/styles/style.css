@@ -650,8 +650,28 @@ button:disabled { cursor: wait; opacity: 0.65; }
 }
 #messages-container .message-header { display: flex; align-items: center; justify-content: flex-end; }
 #messages-container .message.friend_message .message-header { justify-content: flex-start; }
-#messages-container .message-delete { min-height: 1.6rem; margin-left: 0.55rem; padding: 0.15rem 0.4rem; border: 0; background: transparent; color: var(--text-muted); font-size: 0.68rem; }
-#messages-container .message-delete:hover, #messages-container .message-delete:focus-visible { color: #ff8d9b; }
+#messages-container .message-delete {
+  display: grid;
+  width: 1.75rem;
+  min-width: 1.75rem;
+  height: 1.75rem;
+  min-height: 1.75rem;
+  flex: 0 0 1.75rem;
+  place-items: center;
+  margin-left: 0.35rem;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 50%;
+  background: transparent;
+  box-shadow: none;
+  color: var(--text-muted);
+  opacity: 0.78;
+}
+#messages-container .message-delete svg { width: 0.9rem; height: 0.9rem; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.5; }
+#messages-container .message-delete:hover { border-color: rgba(255,141,155,.2); background: rgba(255,141,155,.1); box-shadow: none; color: #ff9aa6; opacity: 1; }
+#messages-container .message-delete:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; color: #ff9aa6; opacity: 1; }
+#messages-container .message-delete:active { transform: scale(0.94); }
+#messages-container .message-delete:disabled { cursor: wait; opacity: 0.55; }
 #messages-container .message small { color: var(--text-muted); font-size: 0.68rem; }
 #messages-container .message-content { color: var(--text); line-height: 1.5; overflow-wrap: anywhere; }
 #messages-container .message-content .message-image-preview { position: relative; }

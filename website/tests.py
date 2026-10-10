@@ -304,6 +304,85 @@ class MessageHttpIdempotencyTests(TransactionTestCase):
             self.assertEqual(save_file.call_count, 1)
 
 
+class MessageDeleteTests(TransactionTestCase):
+    def setUp(self):
+        self.sender = CustomUser.objects.create_user(
+            email='delete-sender@example.com',
+            password='ValidP@ssw0rd',
+            first_name='Sender',
+            last_name='User',
+        )
+        self.recipient = CustomUser.objects.create_user(
+            email='delete-recipient@example.com',
+            password='ValidP@ssw0rd',
+            first_name='Recipient',
+            last_name='User',
+        )
+        Friendship.objects.create(user_from=self.sender, user_to=self.recipient)
+        Friendship.objects.create(user_from=self.recipient, user_to=self.sender)
+        self.client.force_login(self.sender)
+        self.message = Message.objects.create(
+            sender=self.sender,
+            recipient=self.recipient,
+            message='Удаляемое сообщение',
+            uploaded_file='chat_files/attachment.txt',
+        )
+        self.delete_url = reverse(
+            'website:delete_message',
+            args=[self.recipient.pk, self.message.pk],
+        )
+
+    def test_delete_is_idempotent_hides_message_and_removes_attachment(self):
+        storage = Message._meta.get_field('uploaded_file').storage
+
+        with patch.object(storage, 'delete') as delete_file:
+            first_response = self.client.post(self.delete_url)
+            second_response = self.client.post(self.delete_url)
+
+        self.assertEqual(first_response.status_code, 200)
+        self.assertEqual(second_response.status_code, 200)
+        self.assertTrue(second_response.json()['already_deleted'])
+        delete_file.assert_called_once_with('chat_files/attachment.txt')
+
+        self.message.refresh_from_db()
+        self.assertTrue(self.message.is_deleted)
+        self.assertFalse(self.message.uploaded_file)
+
+        history = self.client.get(
+            reverse('website:messages_paginated', args=[self.recipient.pk])
+        )
+        self.assertEqual(history.json()['messages'], [])
+        self.assertEqual(
+            self.client.get(reverse('website:get_message_file', args=[self.message.pk])).status_code,
+            404,
+        )
+
+    def test_cannot_delete_a_message_sent_by_the_other_participant(self):
+        incoming = Message.objects.create(
+            sender=self.recipient,
+            recipient=self.sender,
+            message='Чужое сообщение',
+        )
+        url = reverse('website:delete_message', args=[self.recipient.pk, incoming.pk])
+
+        response = self.client.post(url)
+
+        self.assertEqual(response.status_code, 404)
+        incoming.refresh_from_db()
+        self.assertFalse(incoming.is_deleted)
+
+    def test_storage_failure_leaves_message_available_for_retry(self):
+        storage = Message._meta.get_field('uploaded_file').storage
+
+        with patch.object(storage, 'delete', side_effect=OSError('storage unavailable')):
+            response = self.client.post(self.delete_url)
+
+        self.assertEqual(response.status_code, 500)
+        self.message.refresh_from_db()
+        self.assertFalse(self.message.is_deleted)
+        self.assertEqual(self.message.uploaded_file.name, 'chat_files/attachment.txt')
+
+
 class MessageWebSocketDeliveryTests(TransactionTestCase):
     def setUp(self):
         self.sender = CustomUser.objects.create_user(
@@ -354,4 +433,38 @@ class MessageWebSocketDeliveryTests(TransactionTestCase):
 
         self.assertEqual(len(message_ids), 1)
         self.assertEqual(await database_sync_to_async(Message.objects.count)(), 1)
+        await communicator.disconnect()
+
+    async def test_http_delete_notifies_chat_without_closing_websocket(self):
+        message = await database_sync_to_async(Message.objects.create)(
+            sender=self.sender,
+            recipient=self.recipient,
+            message='Удаляемое сообщение',
+        )
+        communicator = WebsocketCommunicator(
+            application,
+            f'/ws/dm/{self.recipient.pk}/',
+            headers=[(b'cookie', f'sessionid={self.session_cookie}'.encode())],
+        )
+        connected, _ = await communicator.connect()
+        self.assertTrue(connected)
+
+        response = await database_sync_to_async(self.client.post)(
+            reverse('website:delete_message', args=[self.recipient.pk, message.pk])
+        )
+        self.assertEqual(response.status_code, 200)
+        deleted_event = await communicator.receive_json_from(timeout=2)
+        self.assertEqual(deleted_event['event'], 'message_deleted')
+        self.assertEqual(deleted_event['message_id'], message.pk)
+
+        await communicator.send_json_to({
+            'action': 'send',
+            'text': 'Сообщение после удаления',
+            'client_message_id': str(uuid.uuid4()),
+        })
+        next_events = {
+            (await communicator.receive_json_from(timeout=2))['event'],
+            (await communicator.receive_json_from(timeout=2))['event'],
+        }
+        self.assertEqual(next_events, {'message_created', 'message_ack'})
         await communicator.disconnect()

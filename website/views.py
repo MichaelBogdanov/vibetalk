@@ -1,4 +1,5 @@
 import os
+import logging
 from django.shortcuts import render, redirect
 from django.contrib.auth import login, logout
 from django.http import HttpResponse, HttpResponseForbidden, JsonResponse
@@ -15,6 +16,9 @@ from .zego import generate_token04
 import mimetypes
 import uuid
 from django.template.loader import render_to_string
+from django.db import transaction
+
+logger = logging.getLogger(__name__)
 
 
 # Create your views here.
@@ -248,6 +252,60 @@ def messages_paginated(request, peer_id):
         'messages': data,
         'next_before': data[0]['id'] if len(data) == limit else None,
     })
+
+
+@login_required
+def delete_message(request, peer_id, message_id):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Метод не поддерживается'}, status=405)
+
+    try:
+        peer = CustomUser.objects.get(pk=peer_id)
+    except CustomUser.DoesNotExist:
+        return JsonResponse({'error': 'Пользователь не найден'}, status=404)
+
+    if not _are_mutual_friends(request.user, peer):
+        return JsonResponse({'error': 'Нет доступа к переписке'}, status=403)
+
+    try:
+        with transaction.atomic():
+            try:
+                message = Message.objects.select_for_update().get(
+                    pk=message_id,
+                    sender=request.user,
+                    recipient=peer,
+                )
+            except Message.DoesNotExist:
+                return JsonResponse({'error': 'Сообщение не найдено'}, status=404)
+
+            if message.is_deleted:
+                return JsonResponse({'status': 'ok', 'message_id': message.id, 'already_deleted': True})
+
+            if message.uploaded_file:
+                message.uploaded_file.delete(save=False)
+            message.is_deleted = True
+            message.save(update_fields=['uploaded_file', 'is_deleted'])
+    except Exception:
+        logger.exception('Не удалось удалить сообщение %s и его вложение', message_id)
+        return JsonResponse({'error': 'Не удалось удалить сообщение и его файл'}, status=500)
+
+    try:
+        from asgiref.sync import async_to_sync
+        from channels.layers import get_channel_layer
+
+        async_to_sync(get_channel_layer().group_send)(
+            _dm_group_name(request.user.id, peer.id),
+            {
+                'type': 'chat.event',
+                'event': 'message_deleted',
+                'message_id': message.id,
+            },
+        )
+    except Exception:
+        # Удаление уже сохранено. Клиенты всё равно получат актуальное состояние из истории.
+        logger.exception('Не удалось разослать событие удаления сообщения %s', message.id)
+
+    return JsonResponse({'status': 'ok', 'message_id': message.id})
 
 @login_required
 def get_messages(request, user_id):

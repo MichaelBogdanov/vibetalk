@@ -267,6 +267,7 @@ function initWebSocket() {
         if (socket !== connection) return;
         reconnectAttempts = 0;
         console.log("WebSocket подключен");
+        reconcileVisibleMessages();
         for (const entry of pendingMessages.values()) sendPendingMessage(entry);
     };
 
@@ -508,7 +509,7 @@ function createMessageElement(msg) {
     }
     div.dataset.id = msg.id;
     const deleteButton = String(msg.sender) === String(currentUserId)
-        ? '<button class="message-delete" type="button" aria-label="Удалить сообщение" title="Удалить сообщение">Удалить</button>'
+        ? '<button class="message-delete" type="button" aria-label="Удалить сообщение" title="Удалить сообщение"><svg viewBox="0 0 20 20" aria-hidden="true" focusable="false"><path d="M7.5 3.5h5m-8 2h11m-9.5 0 .6 10h5.8l.6-10M8.5 8v5m3-5v5"/></svg></button>'
         : '';
     
     let fileHtml = "";
@@ -592,6 +593,37 @@ function removeDeletedMessage(messageId) {
     updateEmptyState();
 }
 
+async function reconcileVisibleMessages() {
+    const renderedMessages = Array.from(messagesDiv.querySelectorAll('.message[data-id]:not([data-temp="true"])'));
+    if (!renderedMessages.length) return;
+
+    const oldestRenderedId = Math.min(...renderedMessages.map(message => Number(message.dataset.id)));
+    const visibleIds = new Set();
+    let before = null;
+
+    try {
+        while (true) {
+            const params = new URLSearchParams({limit: '100'});
+            if (before !== null) params.set('before', before);
+            const response = await fetch(`/api/dm/${encodeURIComponent(currentPeerId)}/messages/?${params}`);
+            if (!response.ok) throw new Error(`Сервер вернул ${response.status}`);
+
+            const data = await response.json();
+            const batch = data.messages || [];
+            batch.forEach(message => visibleIds.add(String(message.id)));
+            if (!batch.length || Number(batch[0].id) <= oldestRenderedId || !data.next_before) break;
+            before = data.next_before;
+        }
+
+        for (const message of renderedMessages) {
+            if (message.isConnected && !visibleIds.has(message.dataset.id)) message.remove();
+        }
+        updateEmptyState();
+    } catch (error) {
+        console.warn('Не удалось синхронизировать историю чата:', error);
+    }
+}
+
 function upsertMessage(msg, appendToBottom = true, temporaryElement = null) {
     if (!msg || msg.id == null) return;
     const messageId = String(msg.id);
@@ -644,16 +676,55 @@ restorePendingMessages();
 loadInitialMessages();
 initWebSocket();
 
-messagesDiv.addEventListener('click', event => {
+messagesDiv.addEventListener('click', async event => {
     const deleteButton = event.target.closest('.message-delete');
     if (deleteButton) {
         const message = deleteButton.closest('.message[data-id]');
-        if (!message || !socket || socket.readyState !== WebSocket.OPEN) {
-            showToast({icon: 'error', title: 'Нет соединения', text: 'Дождитесь подключения чата и попробуйте снова'});
-            return;
+        if (!message || deleteButton.disabled) return;
+
+        const confirmation = await Swal.fire({
+            icon: 'warning',
+            title: 'Удалить сообщение?',
+            text: message.querySelector('.message-file-container')
+                ? 'Сообщение исчезнет у обоих участников, а прикреплённый файл будет удалён.'
+                : 'Сообщение исчезнет у обоих участников.',
+            showCancelButton: true,
+            confirmButtonText: 'Удалить',
+            cancelButtonText: 'Отмена',
+            reverseButtons: true,
+            focusCancel: true,
+        });
+        if (!confirmation.isConfirmed || !message.isConnected) return;
+
+        deleteButton.disabled = true;
+        deleteButton.setAttribute('aria-busy', 'true');
+        deleteButton.title = 'Удаляется…';
+        try {
+            const response = await fetch(
+                `/api/dm/${encodeURIComponent(currentPeerId)}/messages/${encodeURIComponent(message.dataset.id)}/delete/`,
+                {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                }
+            );
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok || data.status !== 'ok') {
+                throw new Error(data.error || 'Не удалось удалить сообщение. Попробуйте ещё раз.');
+            }
+            removeDeletedMessage(data.message_id);
+        } catch (error) {
+            deleteButton.disabled = false;
+            deleteButton.removeAttribute('aria-busy');
+            deleteButton.title = 'Удалить сообщение';
+            showToast({
+                icon: 'error',
+                title: 'Не удалось удалить сообщение',
+                text: error.message || 'Проверьте соединение и попробуйте ещё раз',
+            });
         }
-        if (!window.confirm('Удалить сообщение и прикреплённый файл?')) return;
-        socket.send(JSON.stringify({action: 'delete', message_id: message.dataset.id}));
         return;
     }
 
