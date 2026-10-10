@@ -281,6 +281,10 @@ function initWebSocket() {
 
         if (data.event === "message_created" || data.event === "message_ack") {
             if (data.message) handleCreatedMessage(data.message);
+        } else if (data.event === "message_deleted") {
+            removeDeletedMessage(data.message_id);
+        } else if (data.event === "message_delete_error") {
+            showToast({icon: 'error', title: 'Не удалось удалить сообщение', text: data.error || 'Попробуйте ещё раз'});
         } else if (data.event === "message_error") {
             markPendingNeedsAttention(data.client_message_id, data.error || 'Сообщение отклонено сервером');
         }
@@ -503,6 +507,9 @@ function createMessageElement(msg) {
         div.className += " friend_message";
     }
     div.dataset.id = msg.id;
+    const deleteButton = String(msg.sender) === String(currentUserId)
+        ? '<button class="message-delete" type="button" aria-label="Удалить сообщение" title="Удалить сообщение">Удалить</button>'
+        : '';
     
     let fileHtml = "";
     if (msg.file) {
@@ -556,7 +563,7 @@ function createMessageElement(msg) {
 
     fileHtml = fileHtml.trim();
     
-    div.innerHTML = `<div class="message-header"><small class="message-time">${readableDate}</small></div><div class="message-content"><span class="message-sender">${escapeHtml(senderLabel)}:</span>${escapeHtml(msg.message || "")}${fileHtml}</div>`;
+    div.innerHTML = `<div class="message-header"><small class="message-time">${readableDate}</small>${deleteButton}</div><div class="message-content"><span class="message-sender">${escapeHtml(senderLabel)}:</span>${escapeHtml(msg.message || "")}${fileHtml}</div>`;
     
     // Инициализируем Fancybox для изображений
     if (window.Fancybox) {
@@ -576,6 +583,13 @@ function updateEmptyState() {
         heading.textContent = 'Начните общение 🗨️';
         messagesDiv.appendChild(heading);
     }
+}
+
+function removeDeletedMessage(messageId) {
+    const element = Array.from(messagesDiv.querySelectorAll('.message[data-id]'))
+        .find(item => item.dataset.id === String(messageId));
+    if (element) element.remove();
+    updateEmptyState();
 }
 
 function upsertMessage(msg, appendToBottom = true, temporaryElement = null) {
@@ -631,6 +645,18 @@ loadInitialMessages();
 initWebSocket();
 
 messagesDiv.addEventListener('click', event => {
+    const deleteButton = event.target.closest('.message-delete');
+    if (deleteButton) {
+        const message = deleteButton.closest('.message[data-id]');
+        if (!message || !socket || socket.readyState !== WebSocket.OPEN) {
+            showToast({icon: 'error', title: 'Нет соединения', text: 'Дождитесь подключения чата и попробуйте снова'});
+            return;
+        }
+        if (!window.confirm('Удалить сообщение и прикреплённый файл?')) return;
+        socket.send(JSON.stringify({action: 'delete', message_id: message.dataset.id}));
+        return;
+    }
+
     const button = event.target.closest('.message-retry');
     if (!button) return;
     const element = button.closest('[data-client-message-id]');

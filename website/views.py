@@ -206,7 +206,8 @@ def messages_paginated(request, peer_id):
     limit, before = page_params
 
     qs = Message.objects.filter(
-        (Q(sender=user) & Q(recipient=peer)) | (Q(sender=peer) & Q(recipient=user))
+        ((Q(sender=user) & Q(recipient=peer)) | (Q(sender=peer) & Q(recipient=user))),
+        is_deleted=False,
     )
     
     if before is not None:
@@ -264,8 +265,9 @@ def get_messages(request, user_id):
     limit, before = page_params
 
     messages_query = Message.objects.filter(
-        (Q(sender=request.user) & Q(recipient=peer)) |
-        (Q(sender=peer) & Q(recipient=request.user))
+        ((Q(sender=request.user) & Q(recipient=peer)) |
+         (Q(sender=peer) & Q(recipient=request.user))),
+        is_deleted=False,
     )
     if before is not None:
         messages_query = messages_query.filter(id__lt=before)
@@ -345,6 +347,8 @@ def conversation(request, user_id):
                     and message.uploaded_file.size == uploaded_file.size
                 )
             )
+            if message.is_deleted:
+                return JsonResponse({'status': 'error', 'message': 'Сообщение уже удалено'}, status=409)
             if message.recipient_id != recipient_id or message.message != message_text or not same_file:
                 return JsonResponse({'status': 'error', 'message': 'Идентификатор уже использован для другого сообщения'}, status=409)
         else:
@@ -450,7 +454,7 @@ def get_message_file(request, message_id):
         raise Http404("Файл не найден")
 
     # Проверяем, что есть файл
-    if not msg.uploaded_file:
+    if msg.is_deleted or not msg.uploaded_file:
         raise Http404("Файл не найден")
 
     try:
@@ -518,7 +522,7 @@ def get_file_info(request, message_id):
     if not _are_mutual_friends(msg.sender, msg.recipient):
         return JsonResponse({'error': 'Доступ запрещен'}, status=403)
 
-    if not msg.uploaded_file:
+    if msg.is_deleted or not msg.uploaded_file:
         return JsonResponse({'error': 'Файл не найден'}, status=404)
 
     file_path = Path(settings.PRIVATE_MEDIA_ROOT) / msg.uploaded_file.name

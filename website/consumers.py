@@ -4,6 +4,7 @@ import logging
 import uuid
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
 from channels.db import database_sync_to_async
+from django.db import transaction
 from .models import Message, CustomUser, Friendship
 from django.urls import reverse
 from django.conf import settings
@@ -48,6 +49,48 @@ class PrivateChatConsumer(AsyncJsonWebsocketConsumer):
             return
 
         action = content.get("action")
+
+        if action == "delete":
+            message_id = content.get("message_id")
+            try:
+                message_id = int(message_id)
+            except (TypeError, ValueError):
+                await self.send_json({"event": "message_delete_error", "error": "Некорректное сообщение"})
+                return
+
+            if not await self._is_allowed(self.user.id, self.peer_id):
+                await self.close(code=4403)
+                return
+
+            try:
+                result = await self._delete_message(message_id, self.user.id, self.peer_id)
+            except Exception:
+                logger.exception("Не удалось удалить сообщение %s", message_id)
+                result = "storage_error"
+
+            if result == "deleted":
+                event = {
+                    "type": "chat.event",
+                    "event": "message_deleted",
+                    "message_id": message_id,
+                }
+                try:
+                    await self.channel_layer.group_send(self.group_name, event)
+                except Exception:
+                    logger.exception("Не удалось разослать удаление сообщения %s", message_id)
+                    await self.send_json({"event": "message_deleted", "message_id": message_id})
+            else:
+                errors = {
+                    "not_found": "Сообщение не найдено",
+                    "forbidden": "Можно удалить только своё сообщение",
+                    "storage_error": "Не удалось удалить сообщение и его файл",
+                }
+                await self.send_json({
+                    "event": "message_delete_error",
+                    "message_id": message_id,
+                    "error": errors.get(result, "Не удалось удалить сообщение"),
+                })
+            return
         
         if action == "send":
             text = content.get("text")
@@ -159,9 +202,29 @@ class PrivateChatConsumer(AsyncJsonWebsocketConsumer):
             message.recipient_id != recipient_id
             or message.message != text
             or message.uploaded_file
+            or message.is_deleted
         ):
             return None, False
         return message, created
+
+    @database_sync_to_async
+    def _delete_message(self, message_id, sender_id, recipient_id):
+        with transaction.atomic():
+            try:
+                message = Message.objects.select_for_update().get(pk=message_id)
+            except Message.DoesNotExist:
+                return "not_found"
+
+            if message.sender_id != sender_id or message.recipient_id != recipient_id:
+                return "forbidden"
+            if message.is_deleted:
+                return "deleted"
+
+            if message.uploaded_file:
+                message.uploaded_file.delete(save=False)
+            message.is_deleted = True
+            message.save(update_fields=["uploaded_file", "is_deleted"])
+            return "deleted"
 
     @database_sync_to_async
     def _get_file_info(self, message):

@@ -650,6 +650,8 @@ button:disabled { cursor: wait; opacity: 0.65; }
 }
 #messages-container .message-header { display: flex; align-items: center; justify-content: flex-end; }
 #messages-container .message.friend_message .message-header { justify-content: flex-start; }
+#messages-container .message-delete { min-height: 1.6rem; margin-left: 0.55rem; padding: 0.15rem 0.4rem; border: 0; background: transparent; color: var(--text-muted); font-size: 0.68rem; }
+#messages-container .message-delete:hover, #messages-container .message-delete:focus-visible { color: #ff8d9b; }
 #messages-container .message small { color: var(--text-muted); font-size: 0.68rem; }
 #messages-container .message-content { color: var(--text); line-height: 1.5; overflow-wrap: anywhere; }
 #messages-container .message-content .message-image-preview { position: relative; }

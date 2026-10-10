@@ -53,7 +53,8 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     def get_friends(self):
         latest_message = Message.objects.filter(
             Q(sender_id=OuterRef('pk'), recipient_id=self.pk)
-            | Q(sender_id=self.pk, recipient_id=OuterRef('pk'))
+            | Q(sender_id=self.pk, recipient_id=OuterRef('pk')),
+            is_deleted=False,
         ).order_by('-timestamp').values('timestamp')[:1]
         latest_friendship = Friendship.objects.filter(
             Q(user_from_id=self.pk, user_to_id=OuterRef('pk'))
@@ -199,6 +200,7 @@ class Message(models.Model):
     )
     original_filename = models.CharField(max_length=255, blank=True, null=True)  # Новое поле
     client_message_id = models.UUIDField(null=True, blank=True, editable=False)
+    is_deleted = models.BooleanField('Удалено', default=False)
 
     def save(self, *args, **kwargs):
         # Сохраняем оригинальное имя файла при сохранении
