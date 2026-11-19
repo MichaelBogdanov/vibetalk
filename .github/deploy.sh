@@ -11,7 +11,19 @@ if [[ $(git rev-parse FETCH_HEAD) != "$release" ]]; then
 fi
 git merge-base --is-ancestor HEAD "$release"
 git diff --cached --quiet
-git diff --quiet -- . ':(exclude)requirements.txt'
+git diff --quiet -- . ':(exclude)requirements.txt' ':(exclude)website/static/admin/**'
+# collectstatic refreshes these tracked copies from the installed Django package.
+# Leave them in place. An unrelated local edit still blocks deployment.
+admin_prefix=website/static/admin/
+if ! git diff --quiet -- "$admin_prefix"; then
+    admin_source=$(venv/bin/python -c 'from pathlib import Path; import django; print(Path(django.__file__).parent / "contrib/admin/static/admin")')
+    while IFS= read -r -d '' path; do
+        if ! cmp -s -- "$path" "$admin_source/${path#"$admin_prefix"}"; then
+            echo "Unexpected local change: $path" >&2
+            exit 1
+        fi
+    done < <(git diff --name-only -z -- "$admin_prefix")
+fi
 if ! git diff --quiet -- requirements.txt; then
     # Adopt the VPS dependency snapshot only if the reviewed release contains it verbatim.
     git diff --quiet "$release" -- requirements.txt
