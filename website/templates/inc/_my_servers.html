@@ -1,39 +1,22 @@
 {% load static %}
-{% load fontawesome_5 %}
-<nav class="my_servers" aria-label="Навигация по VibeTalk">
-    <ul>
-        <li class="brand-item{% if request.resolver_match.url_name == 'home' %} active{% endif %}">
-            <a href="{% url 'website:home' %}" aria-label="Главная VibeTalk"{% if request.resolver_match.url_name == 'home' %} aria-current="page"{% endif %}>
-                <img src="{% static 'favicon/favicon.png' %}" alt="">
-            </a>
-        </li>
-        {% for server in my_servers %}
-        {% url 'website:server' server.id as server_url %}
-        <li{% if request.path == server_url %} class="active"{% endif %}>
-            <a href="{{ server_url }}" aria-label="{{ server.name }}" title="{{ server.name }}"{% if request.path == server_url %} aria-current="page"{% endif %}>
-                <img src="/media/{{ server.photo }}" alt="">
-            </a>
-        </li>
-        {% endfor %}
-        {% if user.is_superuser %}
-        <li>
-            <a href="/admin/website/" aria-label="Управление сайтом" title="Управление сайтом">
-            {% fa5_icon 'users-cog' 'fas' %}
-            </a>
-        </li>
-        {% endif %}
-        <li{% if request.resolver_match.url_name == 'servers' %} class="active"{% endif %}>
-            <a href="{% url 'website:servers' %}" aria-label="Обзор серверов" title="Обзор серверов"{% if request.resolver_match.url_name == 'servers' %} aria-current="page"{% endif %}>
-            {% fa5_icon 'compass' 'fa' %}
-            </a>
-        </li>
-        <li{% if request.resolver_match.url_name == 'create_server' %} class="active"{% endif %}>
-            <a href="{% url 'website:create_server' %}" aria-label="Создать сервер" title="Создать сервер"{% if request.resolver_match.url_name == 'create_server' %} aria-current="page"{% endif %}>
-            {% fa5_icon 'plus' 'fa' %}
-            </a>
-        </li>
-    </ul>
-    <a class="logout-link" href="{% url 'website:logout' %}" aria-label="Выйти из аккаунта" title="Выйти">
-        {% fa5_icon 'sign-out-alt' 'fas' %}
-    </a>
+{% with route=request.resolver_match.url_name %}
+<nav class="workspace-nav" aria-label="Основная навигация">
+    <a class="wordmark" href="{% url 'website:home' %}"><img src="{% static 'favicon/favicon.png' %}" alt="">VibeTalk</a>
+    <a class="nav-item" href="{% url 'website:home' %}"{% if route == 'home' or route == 'conversation' %} aria-current="location"{% endif %}><i class="fas fa-user-friends" aria-hidden="true"></i>Друзья</a>
+    <a class="nav-item" href="{% url 'website:servers' %}"{% if route == 'servers' or route == 'server' or route == 'create_server' %} aria-current="location"{% endif %}><i class="fas fa-layer-group" aria-hidden="true"></i>Серверы</a>
+    <button class="nav-item" type="button" popovertarget="account-menu"><i class="fas fa-bars" aria-hidden="true"></i>Меню</button>
+    {% if my_servers %}<div class="nav-communities">
+        <h2>Мои серверы</h2>
+        {% for item in my_servers %}<a class="nav-community" href="{% url 'website:server' item.pk %}"{% if server == item %} aria-current="page"{% endif %}>
+            {% include 'inc/_server_avatar.html' with community=item %}<span>{{ item.name }}</span>
+        </a>{% endfor %}
+    </div>{% endif %}
 </nav>
+<header class="mobile-brand"><a class="wordmark" href="{% url 'website:home' %}"><img src="{% static 'favicon/favicon.png' %}" alt="">VibeTalk</a><button class="profile-button initials" popovertarget="account-menu" aria-label="Открыть меню аккаунта">{{ user.first_name|default:user.email|first|upper }}{{ user.last_name|first|upper }}</button></header>
+<div id="account-menu" popover aria-label="Меню аккаунта">
+    <header><div><strong>{{ user }}</strong><small>{{ user.email }}</small></div><button class="plain-icon" popovertarget="account-menu" popovertargetaction="hide" aria-label="Закрыть меню"><i class="fa fa-times" aria-hidden="true"></i></button></header>
+    <a href="{% url 'website:create_server' %}"><i class="fa fa-plus" aria-hidden="true"></i>Создать сервер</a>
+    {% if user.is_superuser %}<a href="/admin/website/"><i class="fas fa-users-cog" aria-hidden="true"></i>Управление сайтом</a>{% endif %}
+    <a href="{% url 'website:logout' %}"><i class="fas fa-sign-out-alt" aria-hidden="true"></i>Выйти из аккаунта</a>
+</div>
+{% endwith %}

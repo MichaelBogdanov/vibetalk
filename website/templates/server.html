@@ -1,32 +1,18 @@
 {% extends 'base.html' %}
 {% load fontawesome_5 %}
 
-{% block aside %}
-{% if rooms %}
-<h3>Голосовые комнаты {% if server.owner == user %}<button class="create-room-button icon-button" type="button" aria-label="Создать голосовую комнату" title="Создать голосовую комнату">{% fa5_icon 'plus' 'fa' %}</button>{% endif %}</h3>
-<ul class="rooms">
-    {% for room in rooms %}
-    <li>
-        <a href="/room/{{ room.id }}">{% fa5_icon 'microphone' 'fa' %}Комната {{ room.id }}</a>
-    </li>
-    {% endfor %}
-</ul>
-{% else %}
-<h3>Голосовые комнаты {% if server.owner == user %}<button class="create-room-button icon-button" type="button" aria-label="Создать голосовую комнату" title="Создать голосовую комнату">{% fa5_icon 'plus' 'fa' %}</button>{% endif %}</h3>
-<ul class="rooms"></ul>
-{% endif %}
-{% endblock %}
-
 {% block content %}
-<header class="server-cover">
-    <img src="/media/{{ server.photo }}" alt="" fetchpriority="high">
-    <h1>{{ server.name }}</h1>
-</header>
-<p class="server-description">{{ server.description|default:"Знакомьтесь, общайтесь и делитесь новостями этого сообщества" }}</p>
+<div class="community-page">
+<a class="back-destination" href="{% url 'website:servers' %}"><i class="fa fa-arrow-left" aria-hidden="true"></i> Серверы</a>
+<header class="community-title">{% include 'inc/_server_avatar.html' with community=server %}<div><h1>{{ server.name }}</h1>{% if server.description %}<p>{{ server.description }}</p>{% endif %}</div></header>
+<section class="voice-section" aria-labelledby="rooms-heading">
+    <header><h2 id="rooms-heading">Голосовые комнаты</h2>{% if server.owner == user %}<button class="create-room-button plain-icon" type="button" aria-label="Создать голосовую комнату" title="Создать комнату"><i class="fa fa-plus" aria-hidden="true"></i></button>{% endif %}</header>
+    <ul class="rooms">{% for room in rooms %}<li><a href="{% url 'website:room' room.pk %}"><i class="fas fa-volume-up" aria-hidden="true"></i>Комната {{ room.pk }}</a></li>{% endfor %}</ul>
+    <p class="rooms-empty">На сервере пока нет голосовых комнат.</p>
+</section>
 <section id="server_posts" aria-labelledby="posts-heading">
     <header class="section-heading">
         <div>
-            <p class="eyebrow">Лента сообщества</p>
             <h2 id="posts-heading">Объявления</h2>
         </div>
     </header>
@@ -39,13 +25,12 @@
     </article>
     {% endfor %}
     {% else %}
-    <p class="empty-feed">Здесь пока нет объявлений - создайте первое</p>
+    <p class="empty-feed">Здесь появятся объявления участников.</p>
     {% endif %}
 </section>
 <details class="post-composer" id="post-composer"{% if form.errors %} open{% endif %}>
     <summary class="post-composer-summary">
         <span class="post-composer-summary-copy">
-            <span class="eyebrow">Публикация</span>
             <strong>Новое объявление</strong>
         </span>
         <i class="fa fa-chevron-down" aria-hidden="true"></i>
@@ -67,6 +52,7 @@
         <button type="submit"><span>Опубликовать</span></button>
     </form>
 </details>
+</div>
 
 <script>
 // Функция для получения CSRF-токена
@@ -102,7 +88,7 @@ $('body').on('click', '.create-room-button', function () {
                     href: '/room/' + response.room_id + '/',
                     title: 'Комната ' + response.room_id
                 }).append(
-                    $('<i>', { class: 'fa fa-microphone', 'aria-hidden': 'true' }),
+                    $('<i>', { class: 'fas fa-volume-up', 'aria-hidden': 'true' }),
                     document.createTextNode('Комната ' + response.room_id)
                 );
                 $('.rooms').append($('<li>').append(roomLink));

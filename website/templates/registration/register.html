@@ -8,7 +8,6 @@
         <span>VibeTalk</span>
     </a>
     <main class="auth-panel">
-        <p class="eyebrow">Присоединяйтесь</p>
         <h1>Создайте аккаунт</h1>
         <p class="auth-description">Найдите друзей и откройте для себя сообщества по интересам</p>
         <form method="post" class="registration-form">
@@ -34,7 +33,7 @@
                 <label for="{{ form.password1.id_for_label }}">{{ form.password1.label }}</label>
                 {{ form.password1 }}
                 {% if form.password1.errors %}<ul class="field-errors" role="alert">{% for error in form.password1.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}
-                <section class="password-guidance" aria-labelledby="password-guidance-title">
+                <section class="password-guidance" id="password-guidance" aria-labelledby="password-guidance-title">
                     <h2 id="password-guidance-title">Требования к паролю</h2>
                     <ul class="password-rules">
                         <li data-password-rule="length"><span aria-hidden="true"></span>Не менее 8 символов</li>

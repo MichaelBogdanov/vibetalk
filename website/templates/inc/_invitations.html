@@ -1,29 +1,4 @@
-<details class="invitations-disclosure">
-    <summary>
-        <span>Заявки в друзья</span>
-        <span class="disclosure-indicators">
-            {% if received_invitations %}<span class="invitation-count" aria-label="Новых заявок: {{ received_invitations|length }}">{{ received_invitations|length }}</span>{% endif %}
-            <i class="fa fa-chevron-down" aria-hidden="true"></i>
-        </span>
-    </summary>
     <div class="invitation-groups">
-        <section id="sended-invitations">
-            {% if send_invitations %}
-            <h3>Отправленные</h3>
-            {% for invitation in send_invitations %}
-            <article data-id="{{ invitation.id }}">
-                <i class="fa fa-user" aria-hidden="true"></i>
-                <p>{{ invitation }}</p>
-                <button type="button" class="cancel-friend-request" aria-label="Отменить заявку: {{ invitation }}" title="Отменить заявку"><i class="fa fa-ban" aria-hidden="true"></i></button>
-                <small>{{ invitation.email }}</small>
-            </article>
-            {% endfor %}
-            {% else %}
-            <h3>Отправленные</h3>
-            <p class="invitation-empty">Здесь появятся отправленные вами заявки</p>
-            {% endif %}
-        </section>
-
         <section id="received-invitations">
             {% if received_invitations %}
             <h3>Полученные</h3>
@@ -40,8 +15,24 @@
             <p class="invitation-empty">Новых заявок пока нет</p>
             {% endif %}
         </section>
+        <section id="sended-invitations">
+            {% if send_invitations %}
+            <h3>Отправленные</h3>
+            {% for invitation in send_invitations %}
+            <article data-id="{{ invitation.id }}">
+                <i class="fa fa-user" aria-hidden="true"></i>
+                <p>{{ invitation }}</p>
+                <button type="button" class="cancel-friend-request" aria-label="Отменить заявку: {{ invitation }}" title="Отменить заявку"><i class="fa fa-ban" aria-hidden="true"></i></button>
+                <small>{{ invitation.email }}</small>
+            </article>
+            {% endfor %}
+            {% else %}
+            <h3>Отправленные</h3>
+            <p class="invitation-empty">Здесь появятся отправленные вами заявки</p>
+            {% endif %}
+        </section>
     </div>
-</details>
+
 
 <script>
 $(document).ready(function () {
@@ -66,13 +57,12 @@ $(document).ready(function () {
                         );
                     }
                     const remainingReceived = $('#received-invitations article').length;
-                    const countBadge = $('.invitations-disclosure .invitation-count');
+                    const countBadge = $('.section-tabs .invitation-count');
                     if (remainingReceived) {
                         countBadge.text(remainingReceived).attr('aria-label', 'Новых заявок: ' + remainingReceived);
                     } else {
                         countBadge.remove();
                     }
-                    $('aside').html(response.friends_html);
 
                     showToast({
                         icon: "success",

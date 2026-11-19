@@ -33,7 +33,8 @@ class CustomUserCreationForm(UserCreationForm):
 class CustomAuthenticationForm(AuthenticationForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['username'].widget.attrs.update({'placeholder': 'Введите вашу электронную почту', 'autocomplete': 'email'})
+        self.fields['username'].label = _('Электронная почта')
+        self.fields['username'].widget.attrs.update({'placeholder': 'name@example.com', 'autocomplete': 'username', 'inputmode': 'email', 'autocapitalize': 'none'})
         self.fields['password'].widget.attrs.update({'placeholder': 'Введите ваш пароль', 'autocomplete': 'current-password'})
 
     class Meta:

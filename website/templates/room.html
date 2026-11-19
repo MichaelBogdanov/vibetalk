@@ -3,7 +3,12 @@
 
 {% block content %}
 <link rel="stylesheet" href="{% static 'styles/zego.css' %}">
-<div id="root" role="region" aria-label="Групповой голосовой и видеозвонок"></div>
+<section class="call-stage">
+<header><a class="plain-icon" href="{{ return_url }}" aria-label="Вернуться"><i class="fa fa-arrow-left" aria-hidden="true"></i></a><h1>{{ title }}</h1></header>
+{% if call_error %}
+<div class="call-feedback"><i class="fas fa-phone-slash" aria-hidden="true"></i><h2>{{ call_error }}</h2><p>Попробуйте позвонить позже.</p><a class="button" href="{{ return_url }}">Вернуться</a></div>
+{% else %}
+<div id="root" role="region" aria-label="Групповой голосовой и видеозвонок"><div class="call-feedback" role="status"><p>Подключаем комнату…</p></div></div>
 <script src="https://unpkg.com/zego-superboard-web@2.15.3/index.js"></script>
 <script type="text/javascript" src="{% static 'scripts/zego-uikit-prebuilt.js' %}"></script>
 {{ call_config|json_script:"call-config" }}
@@ -14,11 +19,15 @@ window.onload = function () {
     const userID = callConfig.user_id;
     const userName = callConfig.user_name;
     const appID = Number(callConfig.app_id);
+    if (!window.ZegoUIKitPrebuilt) {
+        document.querySelector('#root [role="status"]').textContent = 'Не удалось загрузить звонок. Проверьте соединение и обновите страницу.';
+        return;
+    }
     const kitToken = ZegoUIKitPrebuilt.generateKitTokenForProduction(appID, callConfig.token, roomID, userID, userName);
 
     const zp = ZegoUIKitPrebuilt.create(kitToken);
 
-    zp.addPlugins({ZegoSuperBoardManager});
+    if (window.ZegoSuperBoardManager) zp.addPlugins({ZegoSuperBoardManager});
 
     zp.joinRoom({
         // Положение на экране
@@ -103,4 +112,6 @@ window.onload = function () {
     });
 };
 </script>
+{% endif %}
+</section>
 {% endblock %}

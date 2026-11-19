@@ -1,0 +1,9 @@
+{% for person in friends %}
+<li><a class="contact-row" href="{% url 'website:conversation' person.pk %}"{% if person == friend %} aria-current="page"{% endif %}>
+    <span class="initials tone-{% cycle 'iris' 'mint' 'peach' %}" aria-hidden="true">{{ person.first_name|default:person.email|first|upper }}{{ person.last_name|first|upper }}</span>
+    <span class="contact-copy"><strong>{{ person }}</strong><small>{{ person.email }}</small></span>
+    <i class="fa fa-chevron-right" aria-hidden="true"></i>
+</a></li>
+{% empty %}
+<li class="list-empty">Друзей пока нет. Найдите знакомого по имени или почте и отправьте заявку.</li>
+{% endfor %}

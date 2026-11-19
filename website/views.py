@@ -772,10 +772,6 @@ def create_room(request):
 
 @login_required
 def room(request, room_id=None, user_id=None):
-    configuration = ZegoCloudConfiguration.objects.first()
-    if not configuration:
-        return HttpResponse("Звонки не настроены", status=503)
-
     if room_id:
         try:
             call_room = ServerRoom.objects.select_related('server').get(id=room_id)
@@ -785,7 +781,7 @@ def room(request, room_id=None, user_id=None):
         if not ServerMember.objects.filter(server=server, member=request.user).exists():
             return HttpResponse('Вы не можете присоединиться к данному разговору')
         call_room_id = str(call_room.id)
-        logout_redirect = f"/server/{server.id}"
+        logout_redirect = reverse('website:server', args=[server.pk])
         title = server.name
     else:
         try:
@@ -798,6 +794,11 @@ def room(request, room_id=None, user_id=None):
         logout_redirect = reverse('website:conversation', args=[peer.id])
         title = f"Разговор: {peer}"
 
+    call_context = {'title': title, 'return_url': logout_redirect}
+    configuration = ZegoCloudConfiguration.objects.first()
+    if not configuration:
+        return render(request, 'room.html', {**call_context, 'call_error': 'Звонки не настроены'}, status=503)
+
     try:
         token = generate_token04(
             configuration.app_id,
@@ -806,7 +807,7 @@ def room(request, room_id=None, user_id=None):
             call_room_id,
         )
     except ValueError:
-        return HttpResponse("Конфигурация звонков некорректна", status=503)
+        return render(request, 'room.html', {**call_context, 'call_error': 'Конфигурация звонков некорректна'}, status=503)
 
     call_config = {
         'app_id': configuration.app_id,
@@ -817,7 +818,7 @@ def room(request, room_id=None, user_id=None):
         'logout_redirect': logout_redirect,
     }
     return render(request, 'room.html', {
-        'title': title,
+        **call_context,
         'call_config': call_config,
     })
 

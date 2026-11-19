@@ -1,28 +1,28 @@
 {% extends 'base.html' %}
 {% load fontawesome_5 %}
 
-{% block aside %}
-{% include 'inc/_friends.html' %}
-{% endblock %}
-
 {% block content %}
-<section class="search">
-    <header class="section-heading">
-        <div>
-            <p class="eyebrow">Люди</p>
-            <h1>Найдите друзей</h1>
-            <p>Общайтесь один на один или приглашайте знакомых в свои сообщества</p>
-        </div>
-    </header>
-    <label class="field-label" for="search-input">Поиск по имени или почте</label>
+<div class="people-page">
+    <h1>Друзья</h1>
     <div class="search-box">
-        {% fa5_icon 'search' 'fa' %}
-        <input type="search" id="search-input" placeholder="Например, Михаил или rick4lderson@gmail.com" autocomplete="off" aria-describedby="search-hint" aria-controls="results-container">
+        <i class="fa fa-search" aria-hidden="true"></i>
+        <input type="search" id="search-input" placeholder="Найти по имени или почте" aria-label="Найти по имени или почте" autocomplete="off" aria-controls="results-container" aria-describedby="search-hint">
     </div>
-    <p class="search-hint" id="search-hint">Введите не меньше двух символов</p>
-    <p class="search-status" id="search-status" data-state="idle" role="status" aria-live="polite">Начните вводить, чтобы найти людей</p>
+    <p id="search-hint" class="sr-only">Для поиска введите не меньше двух символов.</p>
+    <div id="people-default">
+        <nav class="section-tabs" aria-label="Разделы друзей">
+            <a href="{% url 'website:home' %}"{% if request.GET.tab != 'requests' %} aria-current="page"{% endif %}>Мои друзья</a>
+            <a href="?tab=requests"{% if request.GET.tab == 'requests' %} aria-current="page"{% endif %}>Заявки{% if received_invitations %}<span class="invitation-count">{{ received_invitations|length }}</span>{% endif %}</a>
+        </nav>
+        {% if request.GET.tab == 'requests' %}
+        <section class="invitations" id="invitations-section" aria-label="Заявки в друзья">{% include 'inc/_invitations.html' %}</section>
+        {% else %}
+        <ul class="contact-list" aria-label="Мои друзья">{% include 'inc/_contact_rows.html' %}</ul>
+        {% endif %}
+    </div>
+    <p class="search-status" id="search-status" role="status" aria-live="polite"></p>
     <section id="results-container" aria-label="Результаты поиска"></section>
-</section>
+</div>
 <script>
 function getCookie(name) {
     var cookieValue = null;
@@ -100,6 +100,7 @@ $(document).ready(function () {
 
     input.on('input', function () {
         const query = input.val().trim();
+        document.getElementById('people-default').hidden = query.length >= 2;
         clearTimeout(searchTimer);
         if (activeSearch) {
             activeSearch.abort();
@@ -107,7 +108,7 @@ $(document).ready(function () {
         }
         results.empty();
         if (query.length < 2) {
-            setStatus(query ? 'Введите ещё хотя бы один символ' : 'Начните вводить, чтобы найти людей', 'idle');
+            setStatus(query ? 'Введите ещё один символ для поиска' : '', 'idle');
             return;
         }
         searchTimer = setTimeout(function () { searchUsers(query); }, 240);
@@ -131,9 +132,7 @@ $(document).ready(function () {
                         remaining ? 'Осталось результатов: ' + remaining : 'Заявка отправлена - можно найти других людей',
                         'success'
                     );
-                    const invitationsWereOpen = $('#invitations-section .invitations-disclosure').prop('open');
                     $('#invitations-section').html(response.invitations_html);
-                    $('#invitations-section .invitations-disclosure').prop('open', invitationsWereOpen);
                     showToast({
                         icon: "success",
                         title: "Заявка отправлена",
@@ -160,7 +159,4 @@ $(document).ready(function () {
     });
 });
 </script>
-<section class="invitations" id="invitations-section">
-    {% include 'inc/_invitations.html' %}
-</section>
 {% endblock %}

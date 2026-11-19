@@ -5,6 +5,8 @@
 <script>
 function showToast({ icon = "info", title = "", text = "", timer = 4000 }) {
     Swal.fire({
+        toast: true,
+        position: "top-end",
         icon,
         title,
         text,
@@ -19,14 +21,14 @@ function showToast({ icon = "info", title = "", text = "", timer = 4000 }) {
 </script>
 <body>
     <a class="skip-link" href="#main-content">Перейти к содержимому</a>
-    <main class="app-shell">
+    <div class="app-shell">
         {% include 'inc/_my_servers.html' %}
         <aside class="aside" aria-label="Навигация по разделу">
             {% block aside %}{% endblock %}
         </aside>
-        <section class="content" id="main-content" aria-label="Основное содержимое">
+        <main class="content" id="main-content" tabindex="-1">
             {% block content %}{% endblock %}
-        </section>
-    </main>
+        </main>
+    </div>
 </body>
 </html>

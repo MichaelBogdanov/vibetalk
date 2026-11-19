@@ -7,10 +7,10 @@
 {% endblock %}
 
 {% block content %}
-<h1>
-    <span class="conversation-avatar" aria-hidden="true">{{ friend.first_name|default:friend.email|first|upper }}</span>
+<h1><a class="back-link plain-icon" href="{% url 'website:home' %}" aria-label="К списку друзей"><i class="fa fa-arrow-left" aria-hidden="true"></i></a>
+    <span class="conversation-avatar" aria-hidden="true">{{ friend.first_name|default:friend.email|first|upper }}{{ friend.last_name|first|upper }}</span>
     <span class="conversation-name">{{ friend.first_name }} {{ friend.last_name }}</span>
-    <a class="conversation-call" href="talk/" aria-label="Начать голосовой разговор" title="Позвонить">{% fa5_icon 'microphone-alt' 'fas' %}</a>
+    <a class="conversation-call" href="talk/" aria-label="Начать голосовой разговор" title="Позвонить"><i class="fas fa-phone" aria-hidden="true"></i></a>
 </h1>
 <div id="messages-container" role="log" aria-label="Переписка с {{ friend.first_name }} {{ friend.last_name }}" aria-live="polite"></div>
 <form enctype="multipart/form-data" method="post" id="message-form" aria-label="Новое сообщение">
@@ -24,9 +24,9 @@
         </div>
     </div>
     <div class="composer-controls">
-        <textarea id="message" name="message" rows="2" maxlength="8192" placeholder="Введите ваше сообщение" aria-label="Текст сообщения"></textarea>
-        <label for="file_upload" class="custom_file_upload" aria-label="Прикрепить файл" title="Прикрепить файл">
-            {% fa5_icon 'plus' 'fa' %}
+        <textarea id="message" name="message" rows="1" maxlength="8192" placeholder="Сообщение" aria-label="Текст сообщения"></textarea>
+        <label for="file_upload" class="custom_file_upload" role="button" tabindex="0" aria-label="Прикрепить файл" title="Прикрепить файл">
+            {% fa5_icon 'paperclip' 'fa' %}
         </label>
         <button id="send_message" type="submit" aria-label="Отправить сообщение" title="Отправить сообщение">
             <span class="send-icon">{% fa5_icon 'arrow-right' 'fa' %}</span>
@@ -111,26 +111,34 @@ textarea.addEventListener('keydown', event => {
 // ---------------------------------------------------
 // Логика кнопки выбора файла
 // ---------------------------------------------------
-fileInput.addEventListener('click', function(e) {
-    if (fileInput.innerHTML == `<i class="fa fa-ban "></i>`) {
-        realFileInput.value = "";
-        fileInput.innerHTML = `{% fa5_icon 'plus' 'fa' %}`;
-        fileInputLabel.innerHTML = `&nbsp;`;
-        fileInputLabel.style.display = 'none';
-        document.getElementById('message-form').classList.remove('has-attachment');
-        e.preventDefault();
-        fileInput.setAttribute("for", "file_upload");
+function resetAttachment() {
+    realFileInput.value = '';
+    fileInputLabel.textContent = '';
+    fileInputLabel.style.display = 'none';
+    fileInput.innerHTML = `{% fa5_icon 'paperclip' 'fa' %}`;
+    fileInput.setAttribute('aria-label', 'Прикрепить файл');
+    fileInput.title = 'Прикрепить файл';
+    currentFileClientMessageId = null;
+    document.getElementById('message-form').classList.remove('has-attachment');
+}
+fileInput.addEventListener('click', event => {
+    if (realFileInput.files.length) {
+        event.preventDefault();
+        resetAttachment();
     }
 });
-
+fileInput.addEventListener('keydown', event => {
+    if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        fileInput.click();
+    }
+});
 realFileInput.addEventListener('change', function () {
     const file = this.files[0];
     if (!file) {
-        currentFileClientMessageId = null;
-        document.getElementById('message-form').classList.remove('has-attachment');
+        resetAttachment();
         return;
     }
-
     if (file.size > MAX_FILE_SIZE) {
         showToast({
             icon: "error",
@@ -142,7 +150,7 @@ realFileInput.addEventListener('change', function () {
         this.value = "";
         fileInputLabel.innerHTML = '&nbsp;';
         fileInputLabel.style.display = 'none';
-        fileInput.innerHTML = `{% fa5_icon 'plus' 'fa' %}`;
+        fileInput.innerHTML = `{% fa5_icon 'paperclip' 'fa' %}`;
         document.getElementById('message-form').classList.remove('has-attachment');
 
         return;
@@ -151,7 +159,9 @@ realFileInput.addEventListener('change', function () {
     fileInputLabel.textContent =
         `Прикрепленный файл: ${file.name} (${formatFileSize(file.size)})`;
     fileInputLabel.style.display = 'block';
-    fileInput.innerHTML = `{% fa5_icon 'ban' 'fa' %}`;
+    fileInput.innerHTML = `{% fa5_icon 'times' 'fa' %}`;
+    fileInput.setAttribute('aria-label', 'Убрать вложение');
+    fileInput.title = 'Убрать вложение';
     document.getElementById('message-form').classList.add('has-attachment');
     currentFileClientMessageId = createClientMessageId();
 });
@@ -510,12 +520,7 @@ async function uploadFileAndSendMessage(text, file) {
         if (data.status !== 'ok' || !data.message) throw new Error(data.message || 'Сервер не подтвердил отправку');
         handleCreatedMessage(data.message);
         document.getElementById('message').value = '';
-        document.getElementById('file_upload').value = '';
-        fileInputLabel.textContent = '';
-        fileInputLabel.style.display = 'none';
-        document.querySelector('.custom_file_upload').innerHTML = `{% fa5_icon 'plus' 'fa' %}`;
-        document.getElementById('message-form').classList.remove('has-attachment');
-        currentFileClientMessageId = null;
+        resetAttachment();
     } catch (error) {
         console.error('Ошибка отправки файла:', error);
         showToast({icon: 'error', title: 'Сообщение не отправлено', text: 'Проверьте соединение и повторите попытку'});
@@ -750,7 +755,7 @@ function cancelMessageEdit(force = false) {
     activeEditMessage = null;
     activeEditOriginalText = null;
     textarea.value = '';
-    textarea.placeholder = 'Введите ваше сообщение';
+    textarea.placeholder = 'Сообщение';
     textarea.setAttribute('aria-label', 'Текст сообщения');
     document.getElementById('message-form').classList.remove('is-editing');
     document.getElementById('message-form').setAttribute('aria-label', 'Новое сообщение');

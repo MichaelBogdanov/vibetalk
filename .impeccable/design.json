@@ -1,0 +1,411 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-19T14:04:19.246991+00:00",
+  "title": "Дизайн-система VibeTalk",
+  "extensions": {
+    "colorMeta": {
+      "accent": {
+        "role": "primary",
+        "displayName": "Светлая сирень",
+        "canonical": "#b8b7ff",
+        "tonalRamp": [
+          "oklch(15% 0.0433 284.5)",
+          "oklch(25% 0.0722 284.5)",
+          "oklch(37% 0.1011 284.5)",
+          "oklch(49% 0.1011 284.5)",
+          "oklch(61% 0.1011 284.5)",
+          "oklch(73% 0.0910 284.5)",
+          "oklch(85% 0.0506 284.5)",
+          "oklch(95% 0.0169 284.5)"
+        ]
+      },
+      "accent-strong": {
+        "role": "primary",
+        "displayName": "Фиолетовая кнопка",
+        "canonical": "#5651af",
+        "tonalRamp": [
+          "oklch(15% 0.0622 282.0)",
+          "oklch(25% 0.1037 282.0)",
+          "oklch(37% 0.1452 282.0)",
+          "oklch(49% 0.1452 282.0)",
+          "oklch(61% 0.1452 282.0)",
+          "oklch(73% 0.1307 282.0)",
+          "oklch(85% 0.0726 282.0)",
+          "oklch(95% 0.0242 282.0)"
+        ]
+      },
+      "accent-tint": {
+        "role": "primary",
+        "displayName": "Сиреневое выделение",
+        "canonical": "rgba(160, 145, 255, 0.13)",
+        "tonalRamp": [
+          "oklch(15% 0.0672 288.0)",
+          "oklch(25% 0.1121 288.0)",
+          "oklch(37% 0.1569 288.0)",
+          "oklch(49% 0.1569 288.0)",
+          "oklch(61% 0.1569 288.0)",
+          "oklch(73% 0.1412 288.0)",
+          "oklch(85% 0.0784 288.0)",
+          "oklch(95% 0.0261 288.0)"
+        ]
+      },
+      "success": {
+        "role": "secondary",
+        "displayName": "Мята",
+        "canonical": "#77ddb7",
+        "tonalRamp": [
+          "oklch(15% 0.0476 167.3)",
+          "oklch(25% 0.0793 167.3)",
+          "oklch(37% 0.1111 167.3)",
+          "oklch(49% 0.1111 167.3)",
+          "oklch(61% 0.1111 167.3)",
+          "oklch(73% 0.1000 167.3)",
+          "oklch(85% 0.0555 167.3)",
+          "oklch(95% 0.0185 167.3)"
+        ]
+      },
+      "danger": {
+        "role": "secondary",
+        "displayName": "Коралл",
+        "canonical": "#ff8294",
+        "tonalRamp": [
+          "oklch(15% 0.0653 12.4)",
+          "oklch(25% 0.1088 12.4)",
+          "oklch(37% 0.1523 12.4)",
+          "oklch(49% 0.1523 12.4)",
+          "oklch(61% 0.1523 12.4)",
+          "oklch(73% 0.1371 12.4)",
+          "oklch(85% 0.0761 12.4)",
+          "oklch(95% 0.0254 12.4)"
+        ]
+      },
+      "rail": {
+        "role": "neutral",
+        "displayName": "Полоса навигации",
+        "canonical": "#171b24",
+        "tonalRamp": [
+          "oklch(15% 0.0080 266.1)",
+          "oklch(25% 0.0133 266.1)",
+          "oklch(37% 0.0187 266.1)",
+          "oklch(49% 0.0187 266.1)",
+          "oklch(61% 0.0187 266.1)",
+          "oklch(73% 0.0168 266.1)",
+          "oklch(85% 0.0093 266.1)",
+          "oklch(95% 0.0031 266.1)"
+        ]
+      },
+      "canvas": {
+        "role": "neutral",
+        "displayName": "Сланцевое полотно",
+        "canonical": "#1b202a",
+        "tonalRamp": [
+          "oklch(15% 0.0088 264.1)",
+          "oklch(25% 0.0147 264.1)",
+          "oklch(37% 0.0206 264.1)",
+          "oklch(49% 0.0206 264.1)",
+          "oklch(61% 0.0206 264.1)",
+          "oklch(73% 0.0185 264.1)",
+          "oklch(85% 0.0103 264.1)",
+          "oklch(95% 0.0034 264.1)"
+        ]
+      },
+      "sidebar": {
+        "role": "neutral",
+        "displayName": "Фон бокового списка",
+        "canonical": "#202530",
+        "tonalRamp": [
+          "oklch(15% 0.0094 265.8)",
+          "oklch(25% 0.0156 265.8)",
+          "oklch(37% 0.0219 265.8)",
+          "oklch(49% 0.0219 265.8)",
+          "oklch(61% 0.0219 265.8)",
+          "oklch(73% 0.0197 265.8)",
+          "oklch(85% 0.0110 265.8)",
+          "oklch(95% 0.0037 265.8)"
+        ]
+      },
+      "surface": {
+        "role": "neutral",
+        "displayName": "Панель",
+        "canonical": "#242a36",
+        "tonalRamp": [
+          "oklch(15% 0.0102 264.1)",
+          "oklch(25% 0.0170 264.1)",
+          "oklch(37% 0.0237 264.1)",
+          "oklch(49% 0.0237 264.1)",
+          "oklch(61% 0.0237 264.1)",
+          "oklch(73% 0.0214 264.1)",
+          "oklch(85% 0.0119 264.1)",
+          "oklch(95% 0.0040 264.1)"
+        ]
+      },
+      "surface-raised": {
+        "role": "neutral",
+        "displayName": "Поле и входящая реплика",
+        "canonical": "#2b313f",
+        "tonalRamp": [
+          "oklch(15% 0.0114 266.7)",
+          "oklch(25% 0.0190 266.7)",
+          "oklch(37% 0.0265 266.7)",
+          "oklch(49% 0.0265 266.7)",
+          "oklch(61% 0.0265 266.7)",
+          "oklch(73% 0.0239 266.7)",
+          "oklch(85% 0.0133 266.7)",
+          "oklch(95% 0.0044 266.7)"
+        ]
+      },
+      "surface-hover": {
+        "role": "neutral",
+        "displayName": "Наведение",
+        "canonical": "#343b4b",
+        "tonalRamp": [
+          "oklch(15% 0.0127 266.4)",
+          "oklch(25% 0.0211 266.4)",
+          "oklch(37% 0.0295 266.4)",
+          "oklch(49% 0.0295 266.4)",
+          "oklch(61% 0.0295 266.4)",
+          "oklch(73% 0.0266 266.4)",
+          "oklch(85% 0.0148 266.4)",
+          "oklch(95% 0.0049 266.4)"
+        ]
+      },
+      "border": {
+        "role": "neutral",
+        "displayName": "Разделитель",
+        "canonical": "rgba(231, 232, 245, 0.09)",
+        "tonalRamp": [
+          "oklch(15% 0.0075 282.5)",
+          "oklch(25% 0.0125 282.5)",
+          "oklch(37% 0.0175 282.5)",
+          "oklch(49% 0.0175 282.5)",
+          "oklch(61% 0.0175 282.5)",
+          "oklch(73% 0.0158 282.5)",
+          "oklch(85% 0.0088 282.5)",
+          "oklch(95% 0.0029 282.5)"
+        ]
+      },
+      "border-strong": {
+        "role": "neutral",
+        "displayName": "Контур поля",
+        "canonical": "rgba(231, 232, 245, 0.15)",
+        "tonalRamp": [
+          "oklch(15% 0.0075 282.5)",
+          "oklch(25% 0.0125 282.5)",
+          "oklch(37% 0.0175 282.5)",
+          "oklch(49% 0.0175 282.5)",
+          "oklch(61% 0.0175 282.5)",
+          "oklch(73% 0.0158 282.5)",
+          "oklch(85% 0.0088 282.5)",
+          "oklch(95% 0.0029 282.5)"
+        ]
+      },
+      "text": {
+        "role": "neutral",
+        "displayName": "Основной текст",
+        "canonical": "#f1f2f8",
+        "tonalRamp": [
+          "oklch(15% 0.0035 278.6)",
+          "oklch(25% 0.0058 278.6)",
+          "oklch(37% 0.0081 278.6)",
+          "oklch(49% 0.0081 278.6)",
+          "oklch(61% 0.0081 278.6)",
+          "oklch(73% 0.0073 278.6)",
+          "oklch(85% 0.0040 278.6)",
+          "oklch(95% 0.0013 278.6)"
+        ]
+      },
+      "text-soft": {
+        "role": "neutral",
+        "displayName": "Вторичный текст",
+        "canonical": "#c2c7d5",
+        "tonalRamp": [
+          "oklch(15% 0.0087 270.2)",
+          "oklch(25% 0.0145 270.2)",
+          "oklch(37% 0.0203 270.2)",
+          "oklch(49% 0.0203 270.2)",
+          "oklch(61% 0.0203 270.2)",
+          "oklch(73% 0.0182 270.2)",
+          "oklch(85% 0.0101 270.2)",
+          "oklch(95% 0.0034 270.2)"
+        ]
+      },
+      "text-muted": {
+        "role": "neutral",
+        "displayName": "Подпись",
+        "canonical": "#adb5c7",
+        "tonalRamp": [
+          "oklch(15% 0.0116 266.6)",
+          "oklch(25% 0.0194 266.6)",
+          "oklch(37% 0.0272 266.6)",
+          "oklch(49% 0.0272 266.6)",
+          "oklch(61% 0.0272 266.6)",
+          "oklch(73% 0.0244 266.6)",
+          "oklch(85% 0.0136 266.6)",
+          "oklch(95% 0.0045 266.6)"
+        ]
+      },
+      "on-action": {
+        "role": "neutral",
+        "displayName": "Текст кнопки",
+        "canonical": "#ffffff",
+        "tonalRamp": [
+          "oklch(15% 0.0000 0.0)",
+          "oklch(25% 0.0000 0.0)",
+          "oklch(37% 0.0000 0.0)",
+          "oklch(49% 0.0000 0.0)",
+          "oklch(61% 0.0000 0.0)",
+          "oklch(73% 0.0000 0.0)",
+          "oklch(85% 0.0000 0.0)",
+          "oklch(95% 0.0000 0.0)"
+        ]
+      },
+      "outgoing": {
+        "role": "neutral",
+        "displayName": "Своя реплика",
+        "canonical": "#363451",
+        "tonalRamp": [
+          "oklch(15% 0.0216 286.6)",
+          "oklch(25% 0.0360 286.6)",
+          "oklch(37% 0.0504 286.6)",
+          "oklch(49% 0.0504 286.6)",
+          "oklch(61% 0.0504 286.6)",
+          "oklch(73% 0.0453 286.6)",
+          "oklch(85% 0.0252 286.6)",
+          "oklch(95% 0.0084 286.6)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "headline": {
+        "displayName": "Заголовок страницы",
+        "purpose": "Друзья и каталог серверов."
+      },
+      "title": {
+        "displayName": "Заголовок раздела",
+        "purpose": "Голосовые комнаты, объявления и списки серверов."
+      },
+      "body": {
+        "displayName": "Основной текст",
+        "purpose": "Сообщения, формы и основной интерфейс."
+      },
+      "contact": {
+        "displayName": "Имя",
+        "purpose": "Имя и фамилия в строке контакта."
+      },
+      "caption": {
+        "displayName": "Подпись",
+        "purpose": "Адрес под именем контакта."
+      }
+    },
+    "shadows": [
+      {
+        "name": "shadow-panel",
+        "value": "0 20px 56px rgba(0, 0, 0, 0.24)",
+        "purpose": "Меню, диалоги и наведение на карточку сервера."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease-out",
+        "value": "cubic-bezier(0.23, 1, 0.32, 1)",
+        "purpose": "Нажатие кнопки и движение стрелки раскрытия."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "Одноколоночная навигация, до",
+        "value": "760px"
+      },
+      {
+        "name": "Компактный трёхколоночный чат, до",
+        "value": "1050px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Основная кнопка",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Подтверждает публикацию или вступление в сообщество.",
+      "html": "<button class=\"ds-button\">Опубликовать</button>",
+      "css": ".ds-button{font-family:var(--font-sans, system-ui, sans-serif);font-size:1rem;font-weight:750;line-height:1.2;display:inline-flex;align-items:center;justify-content:center;min-height:2.8rem;padding:.68rem 1rem;border:1px solid transparent;border-radius:var(--radius-control, .75rem);cursor:pointer;transition:background-color 150ms ease,transform 130ms var(--ease-out, cubic-bezier(.23,1,.32,1))}.ds-button:active{transform:scale(.98)}.ds-button:focus-visible{outline:2px solid var(--accent, #b8b7ff);outline-offset:3px}.ds-button{background:var(--accent-strong, #5651af);color:white}.ds-button:hover{background:#625cc0;box-shadow:0 .5rem 1.4rem rgba(128,110,244,.2)}"
+    },
+    {
+      "name": "Вторичная кнопка",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Открывает форму создания сервера из каталога.",
+      "html": "<button class=\"ds-button\">Создать</button>",
+      "css": ".ds-button{font-family:var(--font-sans, system-ui, sans-serif);font-size:1rem;font-weight:750;line-height:1.2;display:inline-flex;align-items:center;justify-content:center;min-height:2.8rem;padding:.68rem 1rem;border:1px solid transparent;border-radius:var(--radius-control, .75rem);cursor:pointer;transition:background-color 150ms ease,transform 130ms var(--ease-out, cubic-bezier(.23,1,.32,1))}.ds-button:active{transform:scale(.98)}.ds-button:focus-visible{outline:2px solid var(--accent, #b8b7ff);outline-offset:3px}.ds-button{border-color:var(--border-strong, rgba(231, 232, 245, 0.15));background:var(--surface-raised, #2b313f);color:var(--text, #f1f2f8)}.ds-button:hover{border-color:rgba(160,145,255,.3);background:var(--surface-hover, #343b4b)}"
+    },
+    {
+      "name": "Поиск людей",
+      "kind": "input",
+      "refersTo": "search-field",
+      "description": "Поиск по имени или адресу почты.",
+      "html": "<label class=\"ds-search\"><svg aria-hidden=\"true\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><circle cx=\"10\" cy=\"10\" r=\"6\"/><path d=\"m15 15 6 6\"/></svg><input type=\"search\" aria-label=\"Найти по имени или почте\" placeholder=\"Найти по имени или почте\"></label>",
+      "css": ".ds-search{display:block;position:relative}.ds-search svg{width:1rem;position:absolute;left:.95rem;top:50%;transform:translateY(-50%);color:var(--text-muted, #adb5c7)}.ds-search input{width:100%;min-height:3.15rem;padding:.72rem .85rem .72rem 2.8rem;font:1rem var(--font-sans, system-ui, sans-serif);color:var(--text, #f1f2f8);background:var(--surface-raised, #2b313f);border:1px solid transparent;border-radius:var(--radius-control, .75rem)}.ds-search input::placeholder{color:var(--text-muted, #adb5c7)}.ds-search input:focus{outline:none;border-color:var(--accent, #b8b7ff);box-shadow:0 0 0 3px rgba(160,145,255,.12)}"
+    },
+    {
+      "name": "Выбранный раздел",
+      "kind": "nav",
+      "refersTo": "nav-selected",
+      "description": "Текущий раздел в боковой навигации.",
+      "html": "<nav aria-label=\"Основная навигация\"><a href=\"#friends\" aria-current=\"location\" class=\"ds-nav\"><svg width=\"20\" height=\"20\" aria-hidden=\"true\" viewBox=\"0 0 20 20\" fill=\"currentColor\"><circle cx=\"7\" cy=\"6\" r=\"3\"/><circle cx=\"14\" cy=\"7\" r=\"2.5\"/><path d=\"M1 16a6 6 0 0 1 12 0zM13.5 16a8 8 0 0 0-1.4-4.5A4.5 4.5 0 0 1 19 16z\"/></svg>Друзья</a></nav>",
+      "css": ".ds-nav{display:flex;align-items:center;gap:.8rem;min-height:2.9rem;padding:.55rem .85rem;border-radius:.65rem;background:var(--accent-tint, rgba(160, 145, 255, 0.13));color:var(--accent, #b8b7ff);text-decoration:none;font:600 .95rem var(--font-sans, system-ui, sans-serif)}.ds-nav:focus-visible{outline:2px solid var(--accent, #b8b7ff);outline-offset:3px}"
+    },
+    {
+      "name": "Фильтр категории",
+      "kind": "chip",
+      "refersTo": "category-filter-selected",
+      "description": "Выбранная категория в обзоре серверов.",
+      "html": "<a class=\"ds-filter\" href=\"#all\" aria-current=\"page\">Все</a>",
+      "css": ".ds-filter{display:inline-flex;min-height:2.75rem;align-items:center;padding:.55rem .9rem;border-radius:.65rem;background:var(--accent-tint, rgba(160, 145, 255, 0.13));color:var(--accent, #b8b7ff);font:700 1rem var(--font-sans, system-ui, sans-serif);text-decoration:none}.ds-filter:hover{background:var(--surface-hover, #343b4b)}.ds-filter:focus-visible{outline:2px solid var(--accent, #b8b7ff);outline-offset:3px}"
+    },
+    {
+      "name": "Контакт",
+      "kind": "custom",
+      "refersTo": "contact-row",
+      "description": "Полноширинная ссылка открывает личную беседу.",
+      "html": "<a class=\"ds-contact\" href=\"#conversation\"><span class=\"ds-initials\">МО</span><span class=\"ds-name\">Мария Орлова<small>maria@example.test</small></span><span aria-hidden=\"true\">›</span></a>",
+      "css": ".ds-contact{display:flex;align-items:center;gap:.9rem;min-height:4.65rem;padding:.55rem .25rem;text-decoration:none;font:1rem/1.4 var(--font-sans, system-ui, sans-serif);color:var(--text, #f1f2f8)}.ds-contact:hover{background:var(--surface, #242a36)}.ds-contact:focus-visible{outline:2px solid var(--accent, #b8b7ff);outline-offset:3px}.ds-initials{display:grid;place-items:center;width:2.9rem;height:2.9rem;border-radius:50%;background:#40385e;color:#dbceff;font-weight:700}.ds-name{flex:1;font-weight:650}.ds-name small{display:block;margin-top:.15rem;font-size:.83rem;font-weight:400;color:var(--text-muted, #adb5c7)}"
+    },
+    {
+      "name": "Карточка сервера",
+      "kind": "card",
+      "refersTo": "server-card",
+      "description": "Название сообщества, категория, описание и вступление.",
+      "html": "<article class=\"ds-card\"><span class=\"ds-avatar\">З</span><div><h2>Звуковая среда</h2><small>Творчество</small><p>Обсуждаем новые записи и собираем плейлисты.</p></div><button class=\"ds-button\">Присоединиться →</button></article>",
+      "css": ".ds-card{max-width:18rem;display:grid;gap:1rem;padding:1rem;border:1px solid var(--border, rgba(231, 232, 245, 0.09));border-radius:var(--radius-card, 1.125rem);background:var(--surface, #242a36);color:var(--text, #f1f2f8);font:1rem/1.5 var(--font-sans, system-ui, sans-serif)}.ds-avatar{display:grid;place-items:center;width:3.25rem;height:3.25rem;border-radius:.75rem;background:#304b51;color:#c1e8e3;font-size:1.3rem;font-weight:700}.ds-card h2{margin:0 0 .4rem;font-size:1.04rem}.ds-card small{display:block;margin-bottom:.6rem;font-size:.8rem;color:var(--text-muted, #adb5c7)}.ds-card p{margin:0;color:var(--text-soft, #c2c7d5);font-size:.84rem}.ds-card .ds-button{background:var(--accent-strong, #5651af);color:white}.ds-card .ds-button:hover{background:#625cc0}@media(hover:hover) and (pointer:fine){.ds-card:hover{box-shadow:var(--shadow-panel, 0 20px 56px rgba(0,0,0,.24));border-color:rgba(160,145,255,.36)}}.ds-button{font-family:var(--font-sans, system-ui, sans-serif);font-size:1rem;font-weight:750;line-height:1.2;display:inline-flex;align-items:center;justify-content:center;min-height:2.8rem;padding:.68rem 1rem;border:1px solid transparent;border-radius:var(--radius-control, .75rem);cursor:pointer;transition:background-color 150ms ease,transform 130ms var(--ease-out, cubic-bezier(.23,1,.32,1))}.ds-button:active{transform:scale(.98)}.ds-button:focus-visible{outline:2px solid var(--accent, #b8b7ff);outline-offset:3px}"
+    },
+    {
+      "name": "Исходящая реплика",
+      "kind": "custom",
+      "refersTo": "bubble-outgoing",
+      "description": "Собственное сообщение выравнивается по правой стороне истории.",
+      "html": "<div class=\"ds-history\"><div class=\"ds-message\"><small>17:05</small><div>Да, буду к семи!</div></div></div>",
+      "css": ".ds-history{display:flex;justify-content:flex-end}.ds-message{max-width:min(76%,42rem);padding:.5rem .72rem;border:1px solid rgba(160,145,255,.16);border-radius:1rem 1rem .3rem 1rem;background:#363451;color:var(--text, #f1f2f8);font:1rem/1.5 var(--font-sans, system-ui, sans-serif);overflow-wrap:anywhere}.ds-message small{color:var(--text-muted, #adb5c7);font-size:.68rem}"
+    }
+  ],
+  "narrative": {
+    "northStar": "Классический тёмный мессенджер",
+    "overview": "В списке друзей взгляд идёт от инициалов к имени, а в беседе — от реплики к ответу. Квадратная иконка сервера повторяется в навигации, каталоге и шапке сообщества.\n\nВ личных беседах ориентиром служит Telegram, в устройстве сообществ и голосовых комнат — Discord. На телефоне каждый экран посвящён одному занятию. На широком экране соседние списки помогают переключаться между разговорами.",
+    "keyCharacteristics": [
+      "Тёмные сланцевые поверхности с тонкими границами.",
+      "Светло-сиреневый акцент для выбора и отправки.",
+      "Круглые аватары людей и скруглённые квадраты сообществ."
+    ],
+    "rules": [],
+    "dos": [
+      "Сохранять название рядом со значком в основной навигации телефона.",
+      "Показывать человека и сообщество разными силуэтами даже при отсутствии изображения.",
+      "Отводить свободное место в открытой беседе истории сообщений."
+    ],
+    "donts": [
+      "Смещения строк при выборе контакта или раздела.",
+      "Общей нижней навигации под полем ввода открытой переписки на телефоне.",
+      "Постоянных теней вокруг каждой строки списка."
+    ]
+  }
+}
