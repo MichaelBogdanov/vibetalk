@@ -1,37 +1,75 @@
-name: Deploy Django Project
+name: Verify and deploy VibeTalk
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
 
 jobs:
-  deploy:
+  verify:
     runs-on: ubuntu-latest
-
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:14
+        env:
+          POSTGRES_PASSWORD: ci-only
+        ports: ['5432:5432']
+        options: --health-cmd pg_isready --health-interval 2s --health-timeout 5s --health-retries 15
+      redis:
+        image: redis:7
+        ports: ['6379:6379']
+        options: --health-cmd "redis-cli ping" --health-interval 2s --health-timeout 5s --health-retries 15
+    env:
+      DJANGO_SECRET_KEY: ci-only-test-key
+      DJANGO_DEBUG: 'True'
+      DJANGO_ALLOWED_HOSTS: localhost,testserver
+      POSTGRES_DB: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ci-only
+      REDIS_URL: redis://127.0.0.1:6379/0
     steps:
-      - name: Deploy to server via SSH
-        uses: appleboy/ssh-action@v1.0.3
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
-          host: ${{ secrets.SERVER_HOST }}
-          username: django
-          key: ${{ secrets.SERVER_SSH_KEY }}
-          script: |
-            set -e  # аварийный выход при любой ошибке
-            cd ~/vibetalk
+          python-version: '3.12'
+          cache: pip
+      - run: |
+          python -m pip install -r requirements.txt
+          python -m pip check
+          python manage.py makemigrations --check --dry-run
+          python manage.py test --noinput
+          python manage.py collectstatic --noinput --verbosity 0
 
-            # Обновляем код
-            git pull --rebase
-
-            # Активируем виртуальное окружение и устанавливаем зависимости
-            . venv/bin/activate
-            pip install --upgrade pip
-            pip install -r requirements.txt
-
-            # Выполняем миграции
-            python manage.py migrate --noinput
-
-            # Собираем статические файлы
-            python manage.py collectstatic --noinput
-
-            # Перезапускаем daphne
-            sudo -n /usr/bin/systemctl restart vibetalk-daphne.service
+  deploy:
+    if: github.event_name == 'push'
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    concurrency:
+      group: vibetalk-production
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploy verified commit to VPS
+        env:
+          SERVER_HOST: ${{ secrets.SERVER_HOST }}
+          SERVER_SSH_KEY: ${{ secrets.SERVER_SSH_KEY }}
+        run: |
+          install -m 700 -d ~/.ssh
+          umask 077
+          printf '%s\n' "$SERVER_SSH_KEY" > ~/.ssh/deploy_key
+          printf '%s\n' 'vibetalk-vps ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILt2mKQJ0OsHQywuA1M3CTj15hhitipdbp92eRroGXIH' > ~/.ssh/known_hosts
+          ssh -o BatchMode=yes -o IdentitiesOnly=yes -o ConnectTimeout=15 \
+            -o HostKeyAlias=vibetalk-vps -o StrictHostKeyChecking=yes \
+            -i ~/.ssh/deploy_key "django@$SERVER_HOST" bash -s -- "$GITHUB_SHA" < .github/deploy.sh
+      - name: Check public login and static files through Nginx
+        run: |
+          for path in /login/ /static/styles/style.css; do
+            status=$(curl -sS --retry 2 --max-time 10 -o /dev/null -w '%{http_code}' "https://vibetalk.online$path")
+            [[ "$status" == 200 ]] || { echo "$path returned HTTP $status"; exit 1; }
+          done
