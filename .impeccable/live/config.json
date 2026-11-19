@@ -1,0 +1,9 @@
+{
+  "files": [
+    "website/templates/base.html",
+    "website/templates/registration/*.html"
+  ],
+  "insertBefore": "</body>",
+  "commentSyntax": "html",
+  "cspChecked": true
+}
